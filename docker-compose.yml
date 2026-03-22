@@ -1,0 +1,64 @@
+version: '3'
+
+services:
+
+  kafka:
+    image: bitnamilegacy/kafka:3.2.3
+    user: root
+    container_name: kafka
+    ports:
+      - '9092:9092'
+      - '9094:9094'
+    environment:
+      - KAFKA_INTER_BROKER_USER=''
+      - KAFKA_INTER_BROKER_PASSWORD=''
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      #      - KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+      - BITNAMI_DEBUG=true
+      - KAFKA_CFG_NODE_ID=0
+      - KAFKA_CFG_PROCESS_ROLES=controller,broker
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@kafka:9093
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,EXTERNAL://localhost:9094
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+    #      - KAFKA_CFG_ZOOKEEPER_CONNECT=test_zookeeper:2181
+    #    depends_on:
+    #      - test_zookeeper
+    healthcheck:
+      test: "bash -c 'printf \"\" > /dev/tcp/127.0.0.1/9092; exit $$?;'"
+      interval: 5s
+      timeout: 10s
+      retries: 3
+
+
+## can be used for topic creation
+#  init-kafka:
+#    image: 'bitnamilegacy/kafka:3.2.3'
+#    container_name: init-kafka
+#    entrypoint: [ '/bin/sh', '-c' ]
+#    command: |
+#      "
+#      # blocks until kafka is reachable
+#      kafka-topics.sh --bootstrap-server kafka:9092 --list
+#
+#      echo -e 'Creating kafka topics'
+#      kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic TestTopic
+#
+#      echo -e 'Successfully created the following topics:'
+#      kafka-topics.sh --bootstrap-server kafka:9092 --list
+#      tail -f /dev/null
+#      "
+#    depends_on:
+#      - kafka
+
+# can run without after  bitnami/kafka:3.*
+#  test_zookeeper:
+#    image: bitnamilegacy/zookeeper:3.6.3
+#    container_name: test_zookeeper
+#    user: root
+#    ports:
+#      - '2181:2181'
+#    environment:
+#      - ALLOW_ANONYMOUS_LOGIN=yes
+#      - BITNAMI_DEBUG=true
