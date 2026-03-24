@@ -1,0 +1,7 @@
+modules:
+  kafka:
+    url: docker:9096
+    await: 300 # optional
+    max-consumed-messages: 5 # optional
+    max-consumer-timeout: 700 # optional
+    generate-unique-consumer: true # optional

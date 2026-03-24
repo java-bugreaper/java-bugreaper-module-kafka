@@ -1,0 +1,162 @@
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+    id 'jacoco'
+    id "org.sonarqube" version "6.3.1.5724"
+    id 'signing'
+}
+
+
+description = 'BugReaper module for interaction with Kafka'
+
+group = 'net.bugreaper'
+version = properties["VERSION_NAME"].toString()
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+    withJavadocJar()
+    withSourcesJar()
+}
+
+repositories {
+
+    mavenCentral()
+    //mavenLocal()
+
+}
+
+dependencies {
+    api 'net.bugreaper:core:1.1.0'
+
+    api 'org.apache.kafka:kafka-clients:3.9.1'
+
+    implementation 'org.apiguardian:apiguardian-api:1.1.2'
+
+    testImplementation 'org.testcontainers:kafka:1.20.6'
+
+}
+
+test {
+    useJUnitPlatform()
+    systemProperty('allure.results.directory', project.buildDir.toString() + "/allure-results")
+
+    systemProperties(System.getProperties())
+
+    testLogging {
+        events("PASSED", "FAILED", "SKIPPED")
+        exceptionFormat = "full"
+    }
+
+    finalizedBy jacocoTestReport
+}
+
+jacocoTestReport {
+
+    dependsOn(test)
+    executionData fileTree(dir: "${buildDir}/jacoco", include: "*.exec")
+    reports {
+        xml.required = true
+        html.required = true
+        csv.required = false
+    }
+}
+
+// Compile main code with -parameters so reflection sees real parameter names
+tasks.named('compileJava') {
+    options.compilerArgs += ['-parameters']
+}
+
+sonar {
+    properties {
+        property "sonar.projectKey", "${project.projectDir.name}"
+        property "sonar.projectName", "${project.projectDir.name}"
+        property "sonar.qualitygate.wait", true
+    }
+}
+sonarqube {
+    properties {
+        property "sonar.coverage.jacoco.xmlReportPaths", "${buildDir}/reports/jacoco/test/jacocoTestReport.xml"
+    }
+}
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}
+
+tasks.withType(Javadoc) {
+    options.encoding = 'UTF-8'
+}
+
+tasks.register('generateJavadoc', Javadoc) {
+
+    destinationDir = file("${buildDir}/docs/javadoc")
+    classpath = project.sourceSets.main.runtimeClasspath
+
+    source = sourceSets.main.allJava
+}
+
+publishing {
+
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+
+            pom {
+                name = rootProject.name
+                description = "${project.description}"
+                url = "${project.findProperty('SITE_PATH')}"
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'ambu550'
+                        name = 'Oleksii Betin'
+                        email = 'ambulance003@ukr.net'
+                        url = 'https://www.linkedin.com/in/ambu550/'
+                    }
+                }
+                scm {
+                    url = "${project.findProperty('GITLAB_PATH')}"
+                }
+            }
+        }
+        mavenJavaBase(MavenPublication) {
+            from components.java
+        }
+
+    }
+
+
+    repositories {
+        maven {
+            url =  uri("https://gitlab.com/api/v4/projects/${project.findProperty('PROJECT_ID')}/packages/maven")
+            name = "Gitlab"
+            credentials(HttpHeaderCredentials) {
+                name = 'Job-Token'
+                value = 'PUSH_TOKEN'
+            }
+            authentication {
+                header(HttpHeaderAuthentication)
+            }
+        }
+
+        maven {
+            name = "localWithChecksums"
+            url = uri(layout.buildDirectory.dir("central-package"))
+            // for signing by key
+            signing {
+                useGpgCmd()
+               // sign configurations.runtimeElements
+                //only for mavenJava publication
+                sign(publishing.publications.mavenJava)
+            }
+        }
+
+    }
+}
+

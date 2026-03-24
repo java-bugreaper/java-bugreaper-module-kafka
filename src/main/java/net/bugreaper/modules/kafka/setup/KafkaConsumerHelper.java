@@ -1,0 +1,232 @@
+package net.bugreaper.modules.kafka.setup;
+
+import net.bugreaper.core.assertable.AssertableStringList;
+import net.bugreaper.core.mappers.StringMappers;
+import net.bugreaper.modules.kafka.exceptions.KafkaHelperException;
+import org.apache.kafka.clients.consumer.*;
+import org.apache.kafka.common.PartitionInfo;
+import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.serialization.StringDeserializer;
+import org.awaitility.core.ConditionTimeoutException;
+
+import java.text.MessageFormat;
+import java.time.Duration;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import static net.bugreaper.core.allurereporter.AllureReporter.attachFromList;
+import static net.bugreaper.core.mappers.StringMappers.formatMilliseconds;
+import static net.bugreaper.core.utils.AwaitUtils.awaitCustom;
+import static net.bugreaper.modules.kafka.logger.Log.LOGGER;
+import static org.junit.jupiter.api.Assertions.*;
+
+@SuppressWarnings("squid:S5960")
+public class KafkaConsumerHelper {
+
+    protected final KafkaConsumer<String, String> consumer;
+    protected final String bootStrapServer;
+    protected final KafkaAdminHelper adminClient;
+
+    /**
+     * default consumer group
+     */
+    private static final String DEFAULT_GROUP = "bugreaper-consumer-group";
+
+    /**
+     * default ms await in tests
+     */
+    protected int awaitMs = 2000;
+
+    /**
+     * default max ms for consumer
+     */
+    protected int consumerTimeoutMs = 5000;
+
+    /**
+     * default max messages that will be consumed by grab
+     */
+    protected int maxConsumedMessages = 10;
+
+    /**
+     * switch for unique groupId for consumer
+     */
+    protected boolean uniqueConsumerGroup = false;
+
+    protected KafkaConsumerHelper(String bootStrapServer) {
+
+        this.bootStrapServer = bootStrapServer;
+        this.adminClient = new KafkaAdminHelper(bootStrapServer);
+        this.consumer = new KafkaConsumer<>(createConsumerProperties(bootStrapServer));
+
+        // Shutdown hook to close connect automatically when JVM exits
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            try {
+                consumer.close();
+                LOGGER.debug("Kafka consumer closed");
+            } catch (Exception e) {
+                LOGGER.warn("Failed to close kafka consumer", e);
+            }
+        }
+                , "kafka-consumer-shutdown"
+        ));
+    }
+
+    protected AssertableStringList grabMessagesFromTopicMethod(String topic) {
+
+        //Check is topic exists no timeout
+        adminClient.getPartitionsCountMethod(topic);
+
+        //create a consumer with static membership to remove latency on rebalancing lag
+        List<TopicPartition> partitions = consumer.partitionsFor(topic).stream().map(p -> new TopicPartition(topic, p.partition()))
+                .toList();
+
+        consumer.assign(partitions);
+
+        ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(awaitMs));
+
+        // add messages to list
+        ArrayList<String> actualList = new ArrayList<>();
+        boolean moreThanMax = false;
+
+        long startTime = System.currentTimeMillis();
+
+        for (ConsumerRecord<String, String> message : records) {
+
+            if (System.currentTimeMillis() - startTime > consumerTimeoutMs) {
+                throw new KafkaHelperException(MessageFormat.format("Consuming stopped, time limit reached: {0} (use setConsumerTimeoutMs or config max-consumer-timeout if need)", formatMilliseconds(consumerTimeoutMs)));
+            }
+
+
+            LOGGER.debug("message: {}", message.value());
+            actualList.add(message.value());
+
+            //check limit of consumed messages
+            if (actualList.size() > maxConsumedMessages) {
+                moreThanMax = true;
+                actualList.remove(0);
+            }
+
+        }
+
+        if (moreThanMax) {
+            LOGGER.warn("""
+                    Count of messages in topic <{}>: more than maxMessages({}) in config
+                    only last messages will be consumed (can be changed by  .setMaxConsumeMessages(int) or config 'max-consumed-messages')""", topic, maxConsumedMessages);
+        }
+
+        unsubscribe();
+
+        LOGGER.info("Messages consumed from topic <{}>: {}", topic, actualList.size());
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("List of messages: {}", StringMappers.listToString(actualList));
+        }
+
+        attachFromList(String.format("Messages(%d) list:", actualList.size()), actualList);
+
+        if (actualList.isEmpty()) {
+            throw new ConditionTimeoutException(MessageFormat.format("No messages received within {0}", formatMilliseconds(awaitMs)));
+        }
+
+        return new AssertableStringList(actualList);
+    }
+
+    protected AssertableStringList getAllTopicsNamesMethod() {
+        Map<String, List<PartitionInfo>> topicsMap = consumer.listTopics();
+        ArrayList<String> topics = new ArrayList<>(topicsMap.keySet());
+
+        attachFromList("Topics list:", topics);
+
+        return new AssertableStringList(topics);
+
+    }
+
+    protected int getTopicMessageCountMethod(String topic) {
+
+        //Check is topic exists no timeout
+        adminClient.getPartitionsCountMethod(topic);
+
+        List<TopicPartition> partitions = consumer.partitionsFor(topic).stream().map(p -> new TopicPartition(topic, p.partition()))
+                .toList();
+
+        consumer.assign(partitions);
+
+        consumer.seekToEnd(Collections.emptySet());
+        Map<TopicPartition, Long> endPartitions = partitions.stream().collect(Collectors.toMap(Function.identity(), consumer::position));
+        long all = partitions.stream().mapToLong(endPartitions::get).sum();
+
+        consumer.seekToBeginning(Collections.emptySet());
+        Map<TopicPartition, Long> startPartitions = partitions.stream().collect(Collectors.toMap(Function.identity(), consumer::position));
+        long start = partitions.stream().mapToLong(startPartitions::get).sum();
+        long count = all - start;
+        consumer.unsubscribe();
+        LOGGER.debug("In Topic: <{}> -> (all {} message/s - {} deleted) = {}", topic, all, start, count);
+        return (int) count;
+    }
+
+    private void unsubscribe() {
+        consumer.unsubscribe();
+    }
+
+    protected Properties createConsumerProperties(String bootStrapServer) {
+        Properties props = new Properties();
+
+
+        if (uniqueConsumerGroup) {
+            props.put(ConsumerConfig.GROUP_ID_CONFIG, DEFAULT_GROUP + System.currentTimeMillis());
+        } else {
+            props.put(ConsumerConfig.GROUP_ID_CONFIG, DEFAULT_GROUP);
+        }
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootStrapServer);
+        props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
+        props.put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "1000");
+        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+        return props;
+    }
+
+    protected void assertCountInTopicMethod(String topic, int expectedCount, int awaitMs) {
+        try {
+            awaitCustom(awaitMs).untilAsserted(() ->
+                    assertEquals(
+                            expectedCount,
+                            getTopicMessageCountMethod(topic)));
+        } catch (ConditionTimeoutException e) {
+            fail(
+                    MessageFormat.format(
+                            "Count messages from topic <{0}> expected to be EXACTLY <{1}> but got <{2}> within {3}",
+                            topic, expectedCount, getTopicMessageCountMethod(topic), formatMilliseconds(awaitMs)));
+        }
+    }
+
+    protected void seeTopicIsNotEmptyMethod(String topic, int awaitMs) {
+        try {
+            awaitCustom(awaitMs).untilAsserted(() ->
+                    assertNotEquals(
+                            0,
+                            getTopicMessageCountMethod(topic)));
+        } catch (ConditionTimeoutException e) {
+            fail(
+                    MessageFormat.format(
+                            "Topic <{0}> expected to be not empty but has no messages within {1}",
+                            topic, formatMilliseconds(awaitMs)));
+        }
+    }
+
+
+    protected void seeTopicIsEmptyMethod(String topic, int awaitMs) {
+        try {
+            awaitCustom(awaitMs).untilAsserted(() ->
+                    assertEquals(
+                            0,
+                            getTopicMessageCountMethod(topic)));
+        } catch (ConditionTimeoutException e) {
+            fail(
+                    MessageFormat.format(
+                            "Topic <{0}> expected to be empty but has <{1}> messages within {2}",
+                            topic, getTopicMessageCountMethod(topic), formatMilliseconds(awaitMs)));
+        }
+    }
+
+}

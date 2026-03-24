@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="true">
+
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <charset>utf-8</charset>
+            <Pattern>%d [%thread][%-5level] %class %method %msg%n</Pattern>
+        </encoder>
+    </appender>
+
+
+    <logger name="net.bugreaper.core" level="INFO" />
+    <logger name="bugreaper-module-kafka" level="DEBUG" />
+
+    <root level="INFO">
+        <appender-ref ref="STDOUT"/>
+
+    </root>
+
+</configuration>
