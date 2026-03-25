@@ -72,6 +72,8 @@ public interface KafkaInt {
 
     /**
      * Grab messages to list by consumer (not commit messages!)
+     * <p><b>wait for first message</b>
+     * <p> max list of messages set in config (grab last messages)</p>
      *
      * @param topic topic name
      * @return  {@link AssertableStringList}

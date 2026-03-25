@@ -7,7 +7,8 @@ public interface KafkaConfig {
 
 
     /**
-     * Overrides the awaitMs default
+     * Configure global await for asserts with await or consumers
+     *
      * @param awaitMs ms wait for first message
      * @return this instance for method chaining
      * @throws IllegalArgumentException on invalid setup

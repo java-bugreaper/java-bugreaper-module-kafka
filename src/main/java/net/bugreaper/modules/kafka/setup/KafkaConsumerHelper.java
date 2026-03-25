@@ -112,7 +112,7 @@ public class KafkaConsumerHelper {
         if (moreThanMax) {
             LOGGER.warn("""
                     Count of messages in topic <{}>: more than maxMessages({}) in config
-                    only last messages will be consumed (can be changed by  .setMaxConsumeMessages(int) or config 'max-consumed-messages')""", topic, maxConsumedMessages);
+                    only last messages will be consumed (can be changed by .setMaxConsumeMessages(int) or config 'max-consumed-messages')""", topic, maxConsumedMessages);
         }
 
         unsubscribe();
