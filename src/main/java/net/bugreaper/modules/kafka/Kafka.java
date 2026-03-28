@@ -52,13 +52,17 @@ import net.bugreaper.modules.kafka.setup.KafkaProducerHelper;
 public class Kafka extends KafkaConsumerHelper implements KafkaInt, KafkaAsserts, KafkaConfig {
 
     private final KafkaProducerHelper messageProducer;
-    private static final Kafka INSTANCE = new Kafka();
+    private static Kafka instance;
 
     /**
      * Run {@link #Kafka()} from config in one instance
      */
     public static Kafka getInstance() {
-        return INSTANCE;
+        if (instance == null) {
+            instance = new Kafka();
+        }
+
+        return instance;
     }
 
     /**
