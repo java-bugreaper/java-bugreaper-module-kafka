@@ -2,7 +2,10 @@ package net.bugreaper.modules.kafka.interfaces;
 
 import net.bugreaper.modules.kafka.exceptions.KafkaHelperException;
 
-
+/**
+ * Interface describes methods responsible for helper assertions.
+ * Validates that all required methods are implemented.
+ */
 public interface KafkaAsserts {
 
 

@@ -55,9 +55,13 @@ public class Kafka extends KafkaConsumerHelper implements KafkaInt, KafkaAsserts
     private static Kafka instance;
 
     /**
-     * Run {@link #Kafka()} from config in one instance
+     * Returns the instance of {@link Kafka} with config builder {@link #Kafka()}.
+     * <p>
+     * This implementation is thread-safe using method-level synchronization.
+     *
+     * @return the singleton instance of {@link Kafka}
      */
-    public static Kafka getInstance() {
+    public static synchronized Kafka getInstance() {
         if (instance == null) {
             instance = new Kafka();
         }
