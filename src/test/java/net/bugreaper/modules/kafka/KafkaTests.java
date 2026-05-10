@@ -128,6 +128,23 @@ class KafkaTests {
     }
 
     @Test
+    void grabAndJsonContainsExtendedTest() {
+        String topic = "json_1";
+
+        kafka.sendToTopic(topic, "message_1");
+        kafka.sendToTopic(topic, """
+                {"id": 15, "text": "some15"}""");
+
+
+        kafka.grabMessagesFromTopic(topic)
+                .seeListAnyContainsExtendedJson("""
+                        {
+                        "id:>": 10,
+                        "text:regex": "some.*"
+                        }""");
+    }
+
+    @Test
     void jsonEqualsTest() {
         String topic = "json_2";
 

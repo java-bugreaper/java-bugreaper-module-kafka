@@ -8,7 +8,7 @@ public class KafkaHelperException extends RuntimeException {
     /**
      * Basic exception for Kafka helper
      *
-     * @param cause trace
+     * @param cause The underlying cause that triggered this exception
      */
     public KafkaHelperException(Throwable cause) {
         super(cause);
@@ -17,8 +17,8 @@ public class KafkaHelperException extends RuntimeException {
     /**
      * Basic exception for Kafka helper
      *
-     * @param message info
-     * @param cause trace
+     * @param message A descriptive message explaining the error
+     * @param cause The underlying cause that triggered this exception
      */
     public KafkaHelperException(String message, Throwable cause) {
         super(message, cause);
@@ -27,7 +27,7 @@ public class KafkaHelperException extends RuntimeException {
     /**
      * Basic exception for Kafka helper
      *
-     * @param message info
+     * @param message A descriptive message explaining the error
      */
     public KafkaHelperException(String message) {
         super(message);

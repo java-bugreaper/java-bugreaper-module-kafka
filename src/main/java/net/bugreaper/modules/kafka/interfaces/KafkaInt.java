@@ -4,7 +4,10 @@ import net.bugreaper.core.assertable.AssertableStringList;
 import net.bugreaper.modules.kafka.exceptions.KafkaHelperException;
 import org.awaitility.core.ConditionTimeoutException;
 
-
+/**
+ * Interface defines methods for facilitating helper interactions.
+ * Validates that all required methods are implemented.
+ */
 public interface KafkaInt {
 
     //interaction

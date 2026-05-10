@@ -3,6 +3,10 @@ package net.bugreaper.modules.kafka.interfaces;
 
 import net.bugreaper.modules.kafka.Kafka;
 
+/**
+ * Interface that defines helper configuration methods for helper operations.
+ * Validates that all required methods are implemented.
+ */
 public interface KafkaConfig {
 
 
