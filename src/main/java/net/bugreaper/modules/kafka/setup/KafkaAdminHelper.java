@@ -5,6 +5,8 @@ import net.bugreaper.modules.kafka.logger.Log;
 import org.apache.kafka.clients.admin.*;
 import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.errors.TopicExistsException;
+import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
 
 import java.text.MessageFormat;
 import java.util.*;
@@ -24,7 +26,7 @@ public class KafkaAdminHelper {
                 adminClient.close();
                 Log.LOGGER.debug("Kafka admin client closed");
             } catch (Exception e) {
-                Log.LOGGER.warn("Failed to close kafka dmin client", e);
+                Log.LOGGER.warn("Failed to close kafka admin client", e);
             }
         }
                 , "kafka-admin-client-shutdown"
@@ -63,8 +65,8 @@ public class KafkaAdminHelper {
             future.get();
 
         } catch (ExecutionException e) {
-            if (e.toString().contains("already exists")) {
-                Log.LOGGER.warn(String.valueOf(e));
+            if (e.getCause() instanceof TopicExistsException) {
+                Log.LOGGER.warn(e.getMessage());
             } else {
                 throw new KafkaHelperException(e);
             }
@@ -130,7 +132,7 @@ public class KafkaAdminHelper {
             throw new KafkaHelperException("Interrupted!", e);
         } catch (ExecutionException e) {
             Log.LOGGER.error("Failed to find topic: {}", topic);
-            if (e.toString().contains("UnknownTopicOrPartitionException")) {
+            if (e.getCause() instanceof UnknownTopicOrPartitionException) {
                 throw new KafkaHelperException(MessageFormat.format("Topic <{0}> not exist", topic), e);
             } else {
                 throw new KafkaHelperException(MessageFormat.format("Failed to find topic: {0}", topic), e);

@@ -86,8 +86,7 @@ public class KafkaConsumerHelper {
         ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(awaitMs));
 
         // add messages to list
-        ArrayList<String> actualList = new ArrayList<>();
-        boolean moreThanMax = false;
+        Deque<String> resultList = new ArrayDeque<>();
 
         long startTime = System.currentTimeMillis();
 
@@ -97,25 +96,33 @@ public class KafkaConsumerHelper {
                 throw new KafkaHelperException(MessageFormat.format("Consuming stopped, time limit reached: {0} (use setConsumerTimeoutMs or config max-consumer-timeout if need)", formatMilliseconds(consumerTimeoutMs)));
             }
 
-
             LOGGER.debug("message: {}", message.value());
-            actualList.add(message.value());
+            resultList.add(message.value());
 
-            //check limit of consumed messages
-            if (actualList.size() > maxConsumedMessages) {
-                moreThanMax = true;
-                actualList.remove(0);
-            }
-
-        }
-
-        if (moreThanMax) {
-            LOGGER.warn("""
-                    Count of messages in topic <{}>: more than maxMessages({}) in config
-                    only last messages will be consumed (can be changed by .setMaxConsumeMessages(int) or config 'max-consumed-messages')""", topic, maxConsumedMessages);
         }
 
         unsubscribe();
+
+        if (resultList.isEmpty()) {
+            throw new ConditionTimeoutException(MessageFormat.format("No messages received within {0}", formatMilliseconds(awaitMs)));
+        }
+
+        if (resultList.size() > maxConsumedMessages){
+            LOGGER.warn("""
+                    Count of messages in topic <{}> is <{}>: more than maxMessages({}) in config
+                    only last messages will be consumed to list (can be changed by .setMaxConsumeMessages(int) or config 'max-consumed-messages')""", topic, resultList.size(), maxConsumedMessages);
+        }
+
+        // cut oldest messages out of resultList and reverse list (newest first)
+        List<String> actualList = new ArrayList<>(maxConsumedMessages);
+        Iterator<String> it = resultList.descendingIterator();
+
+        int count = 0;
+        while (it.hasNext() && count < maxConsumedMessages) {
+            actualList.add(it.next());
+            count++;
+        }
+
 
         LOGGER.info("Messages consumed from topic <{}>: {}", topic, actualList.size());
         if (LOGGER.isDebugEnabled()) {
@@ -124,7 +131,7 @@ public class KafkaConsumerHelper {
 
         attachFromList(String.format("Messages(%d) list:", actualList.size()), actualList);
 
-        if (actualList.isEmpty()) {
+        if (resultList.isEmpty()) {
             throw new ConditionTimeoutException(MessageFormat.format("No messages received within {0}", formatMilliseconds(awaitMs)));
         }
 
