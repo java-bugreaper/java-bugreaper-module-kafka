@@ -14,7 +14,7 @@ import net.bugreaper.modules.kafka.setup.KafkaProducerHelper;
 /**
  * This class consists methods that operate with Kafka
  *
- * <p>For one instance run recommended: {@code Kafka kafka = Kafka.getInstance()}</p>
+ * <p>For one instance run recommended: {@code Kafka kafka = Kafka.getInstance();}</p>
  *
  * <p><b>Interaction:</b>
  * {@link #createTopic(String topic)}
@@ -39,8 +39,9 @@ import net.bugreaper.modules.kafka.setup.KafkaProducerHelper;
  * {@link #seeMessagesContainText(String topic, String expectedPart)}
  *
  * <p> Consumer with static membership for remove re-balancing lag after reconnect consumer
- * <p><b> Asserts and grab left messages after test!!! - recommended to use purge between tests(preferable) or unique data</b>
+ * <p><b> Asserts and grab left messages after test!!! - recommended to use purge between tests(preferable) or test unique data</b>
  * <p> Grab messages limited, by default {@link #maxConsumedMessages} (grab last messages) (can be changed by {@link #setMaxConsumeMessages(int)} or config {@code modules.kafka.max-consumed-messages})
+ * <p> Consumed messages will be reversed (newest messages first - for fast tests)
  * <p> Await for first message, by default {@link #awaitMs} (can be changed by {@link #setAwaitMs(int)} or config {@code modules.kafka.await})
  * <p> For testing recommended to use ONE partition per topic (but supports multiple partitions)
  *

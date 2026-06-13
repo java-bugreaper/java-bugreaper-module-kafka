@@ -1,8 +1,13 @@
 package net.bugreaper.modules.kafka;
 
+import ch.qos.logback.classic.Level;
+import com.fasterxml.jackson.databind.JsonNode;
+import net.bugreaper.core.utils.AllureAssert;
+import net.bugreaper.core.utils.AllureResultLoader;
+import net.bugreaper.core.utils.LogWatcher;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.core.StringContains;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import testcontainers.KafkaSetup;
 
 import java.util.concurrent.CompletableFuture;
@@ -14,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 
 @SuppressWarnings("squid:S2699")
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class KafkaTests {
 
 
@@ -29,6 +35,7 @@ class KafkaTests {
         kafka.getAllTopicsNames()
                 .seeListAnyEquals(topic);
 
+        //second time no error
         kafka.createTopic(topic);
         kafka.getAllTopicsNames()
                 .seeListAnyEquals(topic);
@@ -88,7 +95,7 @@ class KafkaTests {
     void checkCountFeatureTest() {
         String topic = "countTopic";
 
-        kafka.createTopic(topic);
+        kafka.sendToTopic(topic, "debug");
         kafka.purgeTopic(topic);
 
         kafka.sendToTopic(topic, "message_1");
@@ -145,6 +152,7 @@ class KafkaTests {
     }
 
     @Test
+    @Order(1)
     void jsonEqualsTest() {
         String topic = "json_2";
 
@@ -154,13 +162,56 @@ class KafkaTests {
         kafka.sendToTopic(topic, """
                 {"id": 22, "text": "some22"}""");
 
-        kafka.sendToTopic(topic, "message_1");
+        kafka.sendToTopic(topic, "message_2");
+
         kafka.seeMessagesHaveEqualJson(topic, """
                 {"id": 22, "text": "some22"}""");
 
         String topic2 = "json_22";
         kafka.sendToTopic(topic2, "message_1");
         kafka.seeMessagesHaveEqualText(topic2, "message_1");
+    }
+
+    @Test
+    @Order(2)
+    void allureForListCheck() {
+        JsonNode result = AllureResultLoader.loadByTestName("jsonEqualsTest");
+
+        AllureAssert.assertThat(result)
+                .hasStep("(Kafka) Send message to topic: json_2")
+                .hasAttachment("message:", """
+                        {"id": 20, "text": "some20"}""")
+
+                .hasStep("(Kafka)[ASSERT] Message in topic: <json_2> EQUALS expected JSON")
+                .hasSubStep("(Kafka) Grab messages from topic: json_2")
+                //list reversed!
+                .hasAttachment("Messages(4) list:", """
+                        [
+                        message_2
+                        
+                        -----------
+                        
+                        {"id": 22, "text": "some22"}
+
+                        -----------
+
+                        message_1
+
+                        -----------
+
+                        {"id": 20, "text": "some20"}
+                        ]""")
+
+                .hasStep("(Kafka)[ASSERT] Message in topic: <json_2> EQUALS expected JSON")
+                .hasSubStep("(Assert) List should have JSON EQUAL to:")
+                .hasAttachment("expected json", """
+                        {"id": 22, "text": "some22"}""")
+
+                .hasStep("(Kafka)[ASSERT] Message in topic: <json_22> EQUALS expected text")
+                .hasSubStep("(Kafka) Grab messages from topic: json_22")
+
+                .hasStep("(Kafka)[ASSERT] Message in topic: <json_22> EQUALS expected text")
+                .hasSubStep("(Assert) List should have STRING EQUAL to: <message_1>");
     }
 
     @Test
@@ -228,6 +279,10 @@ class KafkaTests {
 
         kafka.seeMessagesContainText(topic, "message_2");
 
+        assertEquals(
+                "[[INFO] Messages consumed from topic <multiplePartitions>: 3]",
+                logWatcher.getLoggedEvents(Level.INFO).toString());
+
         kafka.purgeTopic(topic);
 
         kafka.seeCountMessagesInTopicExactly(topic, 0);
@@ -236,13 +291,23 @@ class KafkaTests {
         kafka.seeCountMessagesInTopicExactly(topic, 1);
     }
 
+    private LogWatcher logWatcher;
+    @BeforeEach
+    void setup() {
+        logWatcher = new LogWatcher("bugreaper-module-kafka", Level.DEBUG);
+    }
+
+    @AfterEach
+    void teardown() {
+        logWatcher.detach();
+    }
+
     @Test
     void maxGrabbedMessagesTest() {
         String topic = "maxMessages";
 
         Kafka kafkaCustom = setup.getKafka().setMaxConsumeMessages(2);
 
-        kafkaCustom.getConfigSummary();
         kafkaCustom.createTopic(topic);
 
         kafkaCustom.sendToTopic(topic, "test_1");
@@ -255,6 +320,27 @@ class KafkaTests {
                 .seeListHasExactlyCount(2)
                 .seeListAnyContains("test_2")
                 .seeListAnyContains("test_3");
+
+        assertEquals(
+                """
+                [[WARN] Count of messages in topic <maxMessages> is <3>: more than maxMessages(2) in config
+                only last messages will be consumed to list (can be changed by .setMaxConsumeMessages(int) or config 'max-consumed-messages')]""",
+                logWatcher.getLoggedEvents(Level.WARN).toString());
+
+        assertEquals(
+                "[[INFO] Messages consumed from topic <maxMessages>: 2]",
+                logWatcher.getLoggedEvents(Level.INFO).toString());
+
+        MatcherAssert.assertThat(
+                logWatcher.getLoggedEvents(Level.DEBUG).toString(),
+                StringContains.containsString("""
+                        List of messages: [
+                        test_3
+                        
+                        -----------
+                        
+                        test_2
+                        ]"""));
     }
 
     @Test
