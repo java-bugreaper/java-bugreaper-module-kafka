@@ -89,6 +89,23 @@ public interface KafkaInt {
     AssertableStringList grabMessagesFromTopic(String topic);
 
     /**
+     * Grab messages to list by consumer filtered by record key (not commit messages!)
+     * <p><b>wait for first message</b>
+     * <p>Max count of messages set in config (grab last messages)</p>
+     * <p>List will be reversed (newest messages first - for fast tests)</p>
+     * <p> work with static membership for remove re-balancing lag after reconnect consumer
+     * <p> EXAMPLE:
+     * {@code grabMessagesFromTopic("test_queue", "my-key").seeListAnyEquals("my message") }
+     *
+     * @param topic topic name
+     * @param key   record key to filter messages by. If {@code null}, all messages are consumed.
+     * @return {@link AssertableStringList}
+     * @throws ConditionTimeoutException if topic is empty or no message with this key was received (await)
+     * @throws KafkaHelperException      on topic not exist or consumer timeout reached
+     */
+    AssertableStringList grabMessagesFromTopic(String topic, String key);
+
+    /**
      * Return list of all topics names
      * <p> EXAMPLE:
      * {@code getAllTopicsNames().seeListAnyContains("test_topic")}

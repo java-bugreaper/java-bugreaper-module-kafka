@@ -16,28 +16,6 @@ import net.bugreaper.modules.kafka.setup.KafkaProducerHelper;
  *
  * <p>For one instance run recommended: {@code Kafka kafka = Kafka.getInstance();}</p>
  *
- * <p><b>Interaction:</b>
- * {@link #createTopic(String topic)}
- * {@link #createTopic(String topic, int partitionsCount)}
- * {@link #deleteTopic(String topic)}
- * {@link #purgeTopic(String topic)}
- * {@link #sendToTopic(String topic, String message)}
- * {@link #sendToTopicWithKey(String topic, String key, String message)}
- *
- * <p><b>Get data:</b>
- * {@link #grabMessagesFromTopic(String topic)}
- * {@link #getTopicMessageCount(String topic)}
- * {@link #getAllTopicsNames()}
- *
- * <p><b>Asserts:</b>
- * {@link #seeTopicIsEmpty(String topic)}
- * {@link #seeTopicIsNotEmpty(String topic)}
- * {@link #seeCountMessagesInTopicExactly(String topic, int expectedCount)}
- * {@link #seeMessagesHaveEqualJson(String topic, String expectedJson)}
- * {@link #seeMessagesContainJson(String topic, String expectedJsonPart)}
- * {@link #seeMessagesHaveEqualText(String topic, String expectedText)}
- * {@link #seeMessagesContainText(String topic, String expectedPart)}
- *
  * <p> Consumer with static membership for remove re-balancing lag after reconnect consumer
  * <p><b> Asserts and grab left messages after test!!! - recommended to use purge between tests(preferable) or test unique data</b>
  * <p> Grab messages limited, by default {@link #maxConsumedMessages} (grab last messages) (can be changed by {@link #setMaxConsumeMessages(int)} or config {@code modules.kafka.max-consumed-messages})
@@ -61,6 +39,7 @@ public class Kafka extends KafkaConsumerHelper implements KafkaInt, KafkaAsserts
      * This implementation is thread-safe using method-level synchronization.
      *
      * @return the singleton instance of {@link Kafka}
+     * @see #Kafka() config setup
      */
     public static synchronized Kafka getInstance() {
         if (instance == null) {
@@ -86,18 +65,16 @@ public class Kafka extends KafkaConsumerHelper implements KafkaInt, KafkaAsserts
      * <p><b>Default file:</b> {@code bugreaper.yml}</p>
      * <p><b>Custom file:</b> using {@code -DbugreaperEnv=test} loads {@code bugreaper-test.yml}</p>
      *
-     * <p><b>Required configuration keys:</b></p>
-     * <ul>
-     *     <li>{@code modules.kafka.url}</li>
-     * </ul>
-     *
-     * <p><b>Optional configuration keys:</b></p>
-     * <ul>
-     *     <li>{@code modules.kafka.await}</li>
-     *     <li>{@code modules.kafka.max-consumed-messages}</li>
-     *     <li>{@code modules.kafka.max-consumer-timeout}</li>
-     *     <li>{@code modules.kafka.generate-unique-consumer}</li>
-     * </ul>
+     * <pre>
+     * modules:
+     *   kafka:
+     *     url: localhost:9096
+     *     await: 300 # optional
+     *     max-consumed-messages: 5 # optional
+     *     max-consumer-timeout: 700 # optional
+     *     generate-unique-consumer: true # optional
+     *     reverse-messages: true # optional
+     * </pre>
      *
      * <p>Missing required keys will result in configuration errors.
      * Missing optional keys will fall back to predefined defaults.</p>
@@ -122,6 +99,10 @@ public class Kafka extends KafkaConsumerHelper implements KafkaInt, KafkaAsserts
         Object uniqueConsumer = YamlUtils.getValueByPath("modules.kafka.generate-unique-consumer", true);
         if (uniqueConsumer instanceof Boolean bool) {
             setUniqueConsumer(bool);
+        }
+        Object reverseVal = YamlUtils.getValueByPath("modules.kafka.reverse-messages", true);
+        if (reverseVal instanceof Boolean reverse) {
+            setReverseMessages(reverse);
         }
     }
 
@@ -161,6 +142,11 @@ public class Kafka extends KafkaConsumerHelper implements KafkaInt, KafkaAsserts
         return this;
     }
 
+    @Override
+    public Kafka setReverseMessages(boolean reverseMessages) {
+        this.reverseMessages = reverseMessages;
+        return this;
+    }
 
     @Override
     public String getConfigSummary() {
@@ -170,9 +156,11 @@ public class Kafka extends KafkaConsumerHelper implements KafkaInt, KafkaAsserts
                             awaitMs=%d
                             maxConsumedMessages=%d
                             consumerTimeoutMs=%d
-                            generate-unique-consumer=%b%n""",
+                            generate-unique-consumer=%b
+                            reverseMessages=%b%n""",
                 this.getClass().getSimpleName(), bootStrapServer,
-                awaitMs, maxConsumedMessages, consumerTimeoutMs, uniqueConsumerGroup);
+                awaitMs, maxConsumedMessages, consumerTimeoutMs,
+                uniqueConsumerGroup, reverseMessages);
 
         Log.LOGGER.info(info);
         return info;
@@ -223,7 +211,13 @@ public class Kafka extends KafkaConsumerHelper implements KafkaInt, KafkaAsserts
     @Override
     @Step("(Kafka) Grab messages from topic: {topic}")
     public AssertableStringList grabMessagesFromTopic(String topic) {
-        return grabMessagesFromTopicMethod(topic);
+        return grabMessagesFromTopicMethod(topic, null);
+    }
+
+    @Override
+    @Step("(Kafka) Grab messages from topic: {topic} with key: {key}")
+    public AssertableStringList grabMessagesFromTopic(String topic, String key) {
+        return grabMessagesFromTopicMethod(topic, key);
     }
 
     @Override

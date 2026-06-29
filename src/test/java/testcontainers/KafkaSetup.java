@@ -17,7 +17,7 @@ public class KafkaSetup {
 
     private static final DockerImageName KAFKA_TEST_IMAGE = DockerImageName.parse("apache/kafka:4.1.1");
 
-    KafkaContainer container = new KafkaContainer(KAFKA_TEST_IMAGE)
+    static KafkaContainer container = new KafkaContainer(KAFKA_TEST_IMAGE)
             .withStartupTimeout(Duration.ofSeconds(30))
             .withCreateContainerCmdModifier(cmd -> Objects.requireNonNull(cmd.getHostConfig()).withPortBindings(
                     new PortBinding(Ports.Binding.bindPort(9096), new ExposedPort(9092))
@@ -32,7 +32,7 @@ public class KafkaSetup {
         container.start();
     }
 
-    public static KafkaSetup getInstance() {
+    public static synchronized KafkaSetup getInstance() {
         if (instance == null) {
             instance = new KafkaSetup();
         }
@@ -40,7 +40,7 @@ public class KafkaSetup {
         return instance;
     }
 
-    public Kafka getKafka() {
+    public synchronized Kafka getKafka() {
         return new Kafka(
                 container.getHost() + ":" + container.getMappedPort(9092)
         );

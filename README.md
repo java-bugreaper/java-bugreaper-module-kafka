@@ -10,7 +10,7 @@ for interaction with Kafka
 ### Requirements:
 
     JAVA >= 17
-    Allure server >= 2.15
+    Allure server >= 2.15 (only if push reports)
 
 ### Logging:
 

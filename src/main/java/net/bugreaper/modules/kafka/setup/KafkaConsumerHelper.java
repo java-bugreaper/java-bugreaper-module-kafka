@@ -12,6 +12,7 @@ import org.awaitility.core.ConditionTimeoutException;
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -24,7 +25,13 @@ import static org.junit.jupiter.api.Assertions.*;
 @SuppressWarnings("squid:S5960")
 public class KafkaConsumerHelper {
 
-    protected final KafkaConsumer<String, String> consumer;
+    // KafkaConsumer is not thread-safe, so each test thread must own its own instance.
+    private final ThreadLocal<ConsumerHolder> consumerHolder;
+
+    // ThreadLocal values from other threads are not visible to the shutdown hook thread.
+    // Keeping a concurrent registry lets us close all consumers created by this helper safely.
+    private final Set<KafkaConsumer<String, String>> createdConsumers = ConcurrentHashMap.newKeySet();
+
     protected final String bootStrapServer;
     protected final KafkaAdminHelper adminClient;
 
@@ -36,54 +43,102 @@ public class KafkaConsumerHelper {
     /**
      * default ms await in tests
      */
-    protected int awaitMs = 2000;
+    protected volatile int awaitMs = 2000;
 
     /**
      * default max ms for consumer
      */
-    protected int consumerTimeoutMs = 5000;
+    protected volatile int consumerTimeoutMs = 5000;
 
     /**
      * default max messages that will be consumed by grab
      */
-    protected int maxConsumedMessages = 10;
+    protected volatile int maxConsumedMessages = 10;
 
     /**
      * switch for unique groupId for consumer
      */
-    protected boolean uniqueConsumerGroup = false;
+    protected volatile boolean uniqueConsumerGroup = false;
+
+    /**
+     * default consumed messages will be reversed in list (newer messages will be checked first)
+     */
+    protected volatile boolean reverseMessages = true;
 
     protected KafkaConsumerHelper(String bootStrapServer) {
 
         this.bootStrapServer = bootStrapServer;
         this.adminClient = new KafkaAdminHelper(bootStrapServer);
-        this.consumer = new KafkaConsumer<>(createConsumerProperties(bootStrapServer));
+        this.consumerHolder = ThreadLocal.withInitial(this::createConsumerHolder);
 
-        // Shutdown hook to close connect automatically when JVM exits
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+        Runtime.getRuntime().addShutdownHook(createShutdownHook());
+    }
+
+
+    private ConsumerHolder createConsumerHolder() {
+        boolean currentUniqueConsumerGroup = uniqueConsumerGroup;
+        KafkaConsumer<String, String> kafkaConsumer = new KafkaConsumer<>(createConsumerProperties(bootStrapServer, currentUniqueConsumerGroup));
+        createdConsumers.add(kafkaConsumer);
+        return new ConsumerHolder(kafkaConsumer, currentUniqueConsumerGroup);
+    }
+
+    protected KafkaConsumer<String, String> consumer() {
+        ConsumerHolder holder = consumerHolder.get();
+
+        // setUniqueConsumer can be called after a thread has already created a consumer.
+        // Rebuilding here keeps the consumer group config consistent with the latest helper state.
+        if (holder.uniqueConsumerGroup != uniqueConsumerGroup) {
+            closeConsumer(holder.consumer);
+            consumerHolder.remove();
+            holder = consumerHolder.get();
+            LOGGER.debug("Kafka consumer rebuild");
+        }
+
+        return holder.consumer;
+    }
+
+    private record ConsumerHolder(KafkaConsumer<String, String> consumer, boolean uniqueConsumerGroup) {
+    }
+
+    private void closeConsumer(KafkaConsumer<String, String> kafkaConsumer) {
+        try {
+            kafkaConsumer.close();
+            createdConsumers.remove(kafkaConsumer);
+        } catch (Exception e) {
+            LOGGER.warn("Failed to close kafka consumer", e);
+        }
+    }
+
+    private void closeCreatedConsumers() {
+        createdConsumers.forEach(this::closeConsumer);
+        consumerHolder.remove();
+    }
+
+
+    // Shutdown hook to close connect automatically when JVM exits
+    Thread createShutdownHook() {
+        return new Thread(() -> {
             try {
-                consumer.close();
+                closeCreatedConsumers();
                 LOGGER.debug("Kafka consumer closed");
             } catch (Exception e) {
                 LOGGER.warn("Failed to close kafka consumer", e);
             }
-        }
-                , "kafka-consumer-shutdown"
-        ));
+        }, "kafka-consumer-shutdown");
     }
 
-    protected AssertableStringList grabMessagesFromTopicMethod(String topic) {
+    protected AssertableStringList grabMessagesFromTopicMethod(String topic, String key) {
 
         //Check is topic exists no timeout
         adminClient.getPartitionsCountMethod(topic);
 
         //create a consumer with static membership to remove latency on rebalancing lag
-        List<TopicPartition> partitions = consumer.partitionsFor(topic).stream().map(p -> new TopicPartition(topic, p.partition()))
+        List<TopicPartition> partitions = consumer().partitionsFor(topic).stream().map(p -> new TopicPartition(topic, p.partition()))
                 .toList();
 
-        consumer.assign(partitions);
+        consumer().assign(partitions);
 
-        ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(awaitMs));
+        ConsumerRecords<String, String> records = consumer().poll(Duration.ofMillis(awaitMs));
 
         // add messages to list
         Deque<String> resultList = new ArrayDeque<>();
@@ -94,6 +149,10 @@ public class KafkaConsumerHelper {
 
             if (System.currentTimeMillis() - startTime > consumerTimeoutMs) {
                 throw new KafkaHelperException(MessageFormat.format("Consuming stopped, time limit reached: {0} (use setConsumerTimeoutMs or config max-consumer-timeout if need)", formatMilliseconds(consumerTimeoutMs)));
+            }
+
+            if (key != null && !Objects.equals(key, message.key())) {
+                continue;
             }
 
             LOGGER.debug("message: {}", message.value());
@@ -107,7 +166,7 @@ public class KafkaConsumerHelper {
             throw new ConditionTimeoutException(MessageFormat.format("No messages received within {0}", formatMilliseconds(awaitMs)));
         }
 
-        if (resultList.size() > maxConsumedMessages){
+        if (resultList.size() > maxConsumedMessages) {
             LOGGER.warn("""
                     Count of messages in topic <{}> is <{}>: more than maxMessages({}) in config
                     only last messages will be consumed to list (can be changed by .setMaxConsumeMessages(int) or config 'max-consumed-messages')""", topic, resultList.size(), maxConsumedMessages);
@@ -123,6 +182,10 @@ public class KafkaConsumerHelper {
             count++;
         }
 
+        // reverse back if false
+        if (!reverseMessages) {
+            Collections.reverse(actualList);
+        }
 
         LOGGER.info("Messages consumed from topic <{}>: {}", topic, actualList.size());
         if (LOGGER.isDebugEnabled()) {
@@ -131,15 +194,11 @@ public class KafkaConsumerHelper {
 
         attachFromList(String.format("Messages(%d) list:", actualList.size()), actualList);
 
-        if (resultList.isEmpty()) {
-            throw new ConditionTimeoutException(MessageFormat.format("No messages received within {0}", formatMilliseconds(awaitMs)));
-        }
-
         return new AssertableStringList(actualList);
     }
 
     protected AssertableStringList getAllTopicsNamesMethod() {
-        Map<String, List<PartitionInfo>> topicsMap = consumer.listTopics();
+        Map<String, List<PartitionInfo>> topicsMap = consumer().listTopics();
         ArrayList<String> topics = new ArrayList<>(topicsMap.keySet());
 
         attachFromList("Topics list:", topics);
@@ -153,39 +212,40 @@ public class KafkaConsumerHelper {
         //Check is topic exists no timeout
         adminClient.getPartitionsCountMethod(topic);
 
-        List<TopicPartition> partitions = consumer.partitionsFor(topic).stream().map(p -> new TopicPartition(topic, p.partition()))
+        List<TopicPartition> partitions = consumer().partitionsFor(topic).stream().map(p -> new TopicPartition(topic, p.partition()))
                 .toList();
 
-        consumer.assign(partitions);
+        consumer().assign(partitions);
 
-        consumer.seekToEnd(Collections.emptySet());
-        Map<TopicPartition, Long> endPartitions = partitions.stream().collect(Collectors.toMap(Function.identity(), consumer::position));
+        consumer().seekToEnd(Collections.emptySet());
+        Map<TopicPartition, Long> endPartitions = partitions.stream().collect(Collectors.toMap(Function.identity(), consumer()::position));
         long all = partitions.stream().mapToLong(endPartitions::get).sum();
 
-        consumer.seekToBeginning(Collections.emptySet());
-        Map<TopicPartition, Long> startPartitions = partitions.stream().collect(Collectors.toMap(Function.identity(), consumer::position));
+        consumer().seekToBeginning(Collections.emptySet());
+        Map<TopicPartition, Long> startPartitions = partitions.stream().collect(Collectors.toMap(Function.identity(), consumer()::position));
         long start = partitions.stream().mapToLong(startPartitions::get).sum();
         long count = all - start;
-        consumer.unsubscribe();
+        consumer().unsubscribe();
         LOGGER.debug("In Topic: <{}> -> (all {} message/s - {} deleted) = {}", topic, all, start, count);
         return (int) count;
     }
 
     private void unsubscribe() {
-        consumer.unsubscribe();
+        consumer().unsubscribe();
     }
 
-    protected Properties createConsumerProperties(String bootStrapServer) {
+    private Properties createConsumerProperties(String bootStrapServer, boolean uniqueConsumerGroup) {
         Properties props = new Properties();
 
 
         if (uniqueConsumerGroup) {
-            props.put(ConsumerConfig.GROUP_ID_CONFIG, DEFAULT_GROUP + System.currentTimeMillis());
+
+            props.put(ConsumerConfig.GROUP_ID_CONFIG, DEFAULT_GROUP + "-" + UUID.randomUUID());
         } else {
             props.put(ConsumerConfig.GROUP_ID_CONFIG, DEFAULT_GROUP);
         }
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootStrapServer);
-        props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
+        props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
         props.put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "1000");
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
