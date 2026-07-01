@@ -8,17 +8,16 @@ import net.bugreaper.core.utils.LogWatcher;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.core.StringContains;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.parallel.Isolated;
 import testcontainers.KafkaSetup;
 
-import java.util.concurrent.CompletableFuture;
-
-import static java.lang.Thread.sleep;
 import static org.hamcrest.Matchers.startsWithIgnoringCase;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 
 @SuppressWarnings("squid:S2699")
+@Isolated
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class KafkaTests {
 
@@ -72,6 +71,30 @@ class KafkaTests {
         kafka.sendToTopicWithKey(topic, "key-1", message);
 
         kafka.seeMessagesHaveEqualText(topic, message);
+    }
+
+    @Test
+    void grabMessagesWithKeyTest() {
+        String topic = "grabByKeyTopic";
+
+        kafka.sendToTopicWithKey(topic, "key-1", "message_1");
+        kafka.sendToTopicWithKey(topic, "key-2", "message_2");
+        kafka.sendToTopicWithKey(topic, "key-1", "message_3");
+
+        kafka.seeCountMessagesInTopicExactly(topic, 3);
+
+        kafka.grabMessagesFromTopic(topic, "key-1")
+                .seeListHasExactlyCount(2)
+                .seeListAnyEquals("message_1")
+                .seeListAnyEquals("message_3");
+
+        kafka.grabMessagesFromTopic(topic)
+                .seeListHasExactlyCount(3)
+                .seeListAnyEquals("message_1")
+                .seeListAnyEquals("message_2")
+                .seeListAnyEquals("message_3");
+
+
     }
 
     @Test
@@ -344,55 +367,44 @@ class KafkaTests {
     }
 
     @Test
-    void parallelNotEmptyTest() {
+    void maxGrabbedMessagesNotReversedTest() {
+        String topic = "maxMessagesNotReversed";
 
-        String topic = "paralleltopic1";
+        Kafka kafkaCustom = setup.getKafka().setMaxConsumeMessages(2).setReverseMessages(false);
 
-        kafka.createTopic(topic);
-        kafka.purgeTopic(topic);
+        kafkaCustom.createTopic(topic);
 
-        CompletableFuture<Void> step1 = CompletableFuture.runAsync(() -> kafka.seeTopicIsNotEmpty(topic));
-        CompletableFuture<Void> step2 = CompletableFuture.runAsync(() -> pushWithSleep(topic));
+        kafkaCustom.sendToTopic(topic, "test_1");
+        kafkaCustom.sendToTopic(topic, "test_2");
+        kafkaCustom.sendToTopic(topic, "test_3");
 
-        CompletableFuture.allOf(step1, step2).join();
-    }
+        kafkaCustom.seeCountMessagesInTopicExactly(topic, 3);
 
-    @Test
-    void parallelCountTest() {
+        kafkaCustom.grabMessagesFromTopic(topic)
+                .seeListHasExactlyCount(2)
+                .seeListAnyContains("test_2")
+                .seeListAnyContains("test_3");
 
-        String topic = "paralleltopic2";
+        assertEquals(
+                """
+                [[WARN] Count of messages in topic <maxMessagesNotReversed> is <3>: more than maxMessages(2) in config
+                only last messages will be consumed to list (can be changed by .setMaxConsumeMessages(int) or config 'max-consumed-messages')]""",
+                logWatcher.getLoggedEvents(Level.WARN).toString());
 
-        kafka.createTopic(topic);
-        kafka.purgeTopic(topic);
+        assertEquals(
+                "[[INFO] Messages consumed from topic <maxMessagesNotReversed>: 2]",
+                logWatcher.getLoggedEvents(Level.INFO).toString());
 
-        CompletableFuture<Void> step1 = CompletableFuture.runAsync(() -> kafka.seeCountMessagesInTopicExactly(topic, 1));
-        CompletableFuture<Void> step2 = CompletableFuture.runAsync(() -> pushWithSleep(topic));
-
-        CompletableFuture.allOf(step1, step2).join();
-    }
-
-    @Test
-    void parallelGrabTest() {
-
-        String topic = "paralleltopic3";
-
-        kafka.createTopic(topic);
-        kafka.purgeTopic(topic);
-
-        CompletableFuture<Void> step1 = CompletableFuture.runAsync(() -> kafka.grabMessagesFromTopic(topic).seeListAnyContains("some"));
-        CompletableFuture<Void> step2 = CompletableFuture.runAsync(() -> pushWithSleep(topic));
-
-        CompletableFuture.allOf(step1, step2).join();
-    }
-
-    @SuppressWarnings("squid:S2925")
-    private void pushWithSleep(String topic) {
-        try {
-            sleep(500);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-        kafka.sendToTopic(topic, "some message");
+        MatcherAssert.assertThat(
+                logWatcher.getLoggedEvents(Level.DEBUG).toString(),
+                StringContains.containsString("""
+                        List of messages: [
+                        test_2
+                        
+                        -----------
+                        
+                        test_3
+                        ]"""));
     }
 
 }

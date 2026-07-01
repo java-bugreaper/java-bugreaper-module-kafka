@@ -1,11 +1,14 @@
 package net.bugreaper.modules.kafka;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Isolated;
 import testcontainers.KafkaSetup;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+
+@Isolated
 class KafkaConfigureValidationTests {
 
     private final KafkaSetup setup = KafkaSetup.getInstance();

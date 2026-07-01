@@ -43,6 +43,16 @@ public interface KafkaConfig {
     Kafka setUniqueConsumer(boolean unique);
 
     /**
+     * Overrides the reverseMessages default
+     * <p>Reverse consumed or read messages in list</p>
+     *
+     * @param reverseMessages true=reverse false=not reverse
+     * @return this instance for method chaining
+     */
+    Kafka setReverseMessages(boolean reverseMessages);
+
+
+    /**
      * Returns and logs (at INFO level) a human-readable summary of all resolved
      * configuration values.
      * <p>

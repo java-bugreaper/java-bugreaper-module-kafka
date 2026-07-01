@@ -1,7 +1,8 @@
 modules:
   kafka:
     url: localhost:9096
-    await: 300 # optional
+    await: 1000 # optional
     max-consumed-messages: 5 # optional
     max-consumer-timeout: 700 # optional
     generate-unique-consumer: true # optional
+    reverse-messages: false # optional

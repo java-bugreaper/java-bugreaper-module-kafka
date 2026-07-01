@@ -5,6 +5,7 @@ import org.awaitility.core.ConditionTimeoutException;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.core.StringContains;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Isolated;
 import testcontainers.KafkaSetup;
 
 import java.text.MessageFormat;
@@ -13,6 +14,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 
+@Isolated
 class KafkaExceptionsTests {
 
 

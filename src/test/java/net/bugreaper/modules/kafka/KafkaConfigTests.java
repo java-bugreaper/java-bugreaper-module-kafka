@@ -3,6 +3,7 @@ package net.bugreaper.modules.kafka;
 import net.bugreaper.core.config.YamlUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Isolated;
 import testcontainers.KafkaSetup;
 
 import java.util.Objects;
@@ -11,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 
 @SuppressWarnings("squid:S2699")
+@Isolated
 class KafkaConfigTests {
 
 
@@ -49,6 +51,7 @@ class KafkaConfigTests {
                             maxConsumedMessages=10
                             consumerTimeoutMs=5000
                             generate-unique-consumer=false
+                            reverseMessages=true
                         """, expectedHost),
                 kafkaDef.getConfigSummary());
     }
@@ -67,10 +70,11 @@ class KafkaConfigTests {
         assertEquals(String.format("""
                         Kafka:
                             kafkaServer=%s
-                            awaitMs=300
+                            awaitMs=1000
                             maxConsumedMessages=5
                             consumerTimeoutMs=700
                             generate-unique-consumer=true
+                            reverseMessages=false
                         """, expectedHost),
                 kafkaConf.getConfigSummary());
     }
