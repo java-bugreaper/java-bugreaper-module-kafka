@@ -2,17 +2,16 @@ package net.bugreaper.modules.kafka;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Isolated;
-import testcontainers.KafkaSetup;
+import testcontainers.KafkaContainerSetup;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 
 @Isolated
-class KafkaConfigureValidationTests {
+class KafkaConfigureValidationTests extends KafkaContainerSetup {
 
-    private final KafkaSetup setup = KafkaSetup.getInstance();
-    private final Kafka kafka = setup.getKafka();
+    private final Kafka kafka = getKafka();
 
     @Test
     void configMaxMessagesReadTest() {

@@ -260,7 +260,7 @@ public class KafkaConsumerHelper {
                             expectedCount,
                             getTopicMessageCountMethod(topic)));
         } catch (ConditionTimeoutException e) {
-            fail(
+            throw new AssertionError(
                     MessageFormat.format(
                             "Count messages from topic <{0}> expected to be EXACTLY <{1}> but got <{2}> within {3}",
                             topic, expectedCount, getTopicMessageCountMethod(topic), formatMilliseconds(awaitMs)));
@@ -274,7 +274,7 @@ public class KafkaConsumerHelper {
                             0,
                             getTopicMessageCountMethod(topic)));
         } catch (ConditionTimeoutException e) {
-            fail(
+            throw new AssertionError(
                     MessageFormat.format(
                             "Topic <{0}> expected to be not empty but has no messages within {1}",
                             topic, formatMilliseconds(awaitMs)));
@@ -289,7 +289,7 @@ public class KafkaConsumerHelper {
                             0,
                             getTopicMessageCountMethod(topic)));
         } catch (ConditionTimeoutException e) {
-            fail(
+            throw new AssertionError(
                     MessageFormat.format(
                             "Topic <{0}> expected to be empty but has <{1}> messages within {2}",
                             topic, getTopicMessageCountMethod(topic), formatMilliseconds(awaitMs)));

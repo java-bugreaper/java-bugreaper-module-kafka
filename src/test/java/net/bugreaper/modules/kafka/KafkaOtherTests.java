@@ -10,7 +10,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Isolated;
-import testcontainers.KafkaSetup;
+import testcontainers.KafkaContainerSetup;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -22,10 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @SuppressWarnings("squid:S2699")
 @Isolated
-class KafkaOtherTests {
-
-    private final KafkaSetup setup = KafkaSetup.getInstance();
-
+class KafkaOtherTests extends KafkaContainerSetup {
     private LogWatcher logWatcher;
     @BeforeEach
     void setup() {
@@ -40,8 +37,8 @@ class KafkaOtherTests {
 
     @Test
     void multipleConsumersTest() {
-        Kafka kafka1 = setup.getKafka().setUniqueConsumer(false);
-        Kafka kafka2 = setup.getKafka().setUniqueConsumer(true);
+        Kafka kafka1 = getKafka().setUniqueConsumer(false);
+        Kafka kafka2 = getKafka().setUniqueConsumer(true);
 
         String topic = "multipleConsumers";
 

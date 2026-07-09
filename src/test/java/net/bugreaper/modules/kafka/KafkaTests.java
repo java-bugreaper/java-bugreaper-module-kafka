@@ -9,7 +9,7 @@ import org.hamcrest.MatcherAssert;
 import org.hamcrest.core.StringContains;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.parallel.Isolated;
-import testcontainers.KafkaSetup;
+import testcontainers.KafkaContainerSetup;
 
 import static org.hamcrest.Matchers.startsWithIgnoringCase;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -19,12 +19,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @SuppressWarnings("squid:S2699")
 @Isolated
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-class KafkaTests {
+class KafkaTests extends KafkaContainerSetup {
 
-
-    private final KafkaSetup setup = KafkaSetup.getInstance();
-    private final Kafka kafka = setup.getKafka();
-
+    private final Kafka kafka = getKafka();
 
     @Test
     void createTopicMultipleTimesTest() {
@@ -226,15 +223,13 @@ class KafkaTests {
                         ]""")
 
                 .hasStep("(Kafka)[ASSERT] Message in topic: <json_2> EQUALS expected JSON")
-                .hasSubStep("(Assert) List should have JSON EQUAL to:")
+                .hasSubStep("↑(Assert) List should have JSON EQUAL to:")
                 .hasAttachment("expected json", """
                         {"id": 22, "text": "some22"}""")
 
                 .hasStep("(Kafka)[ASSERT] Message in topic: <json_22> EQUALS expected text")
-                .hasSubStep("(Kafka) Grab messages from topic: json_22")
-
-                .hasStep("(Kafka)[ASSERT] Message in topic: <json_22> EQUALS expected text")
-                .hasSubStep("(Assert) List should have STRING EQUAL to: <message_1>");
+                .hasSubStepLeft("(Kafka) Grab messages from topic: json_22")
+                .hasSubStepLeft("↑(Assert) List should have STRING EQUAL to: <message_1>");
     }
 
     @Test
@@ -329,7 +324,7 @@ class KafkaTests {
     void maxGrabbedMessagesTest() {
         String topic = "maxMessages";
 
-        Kafka kafkaCustom = setup.getKafka().setMaxConsumeMessages(2);
+        Kafka kafkaCustom = getKafka().setMaxConsumeMessages(2);
 
         kafkaCustom.createTopic(topic);
 
@@ -370,7 +365,7 @@ class KafkaTests {
     void maxGrabbedMessagesNotReversedTest() {
         String topic = "maxMessagesNotReversed";
 
-        Kafka kafkaCustom = setup.getKafka().setMaxConsumeMessages(2).setReverseMessages(false);
+        Kafka kafkaCustom = getKafka().setMaxConsumeMessages(2).setReverseMessages(false);
 
         kafkaCustom.createTopic(topic);
 

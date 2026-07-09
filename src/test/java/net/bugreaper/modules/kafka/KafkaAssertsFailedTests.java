@@ -5,18 +5,14 @@ import org.hamcrest.MatcherAssert;
 import org.hamcrest.core.StringContains;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Isolated;
-import testcontainers.KafkaSetup;
-
+import testcontainers.KafkaContainerSetup;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 
 @Isolated
-class KafkaAssertsFailedTests {
+class KafkaAssertsFailedTests extends KafkaContainerSetup {
 
-
-    private final KafkaSetup setup = KafkaSetup.getInstance();
-    private final Kafka kafka =
-            setup.getKafka().setAwaitMs(400);
+    private final Kafka kafka = getKafka().setAwaitMs(400);
 
     @Test
     void purgeTopicAndCheckMessageAssertTest() {
@@ -54,9 +50,7 @@ class KafkaAssertsFailedTests {
     @Test
     void countExactlyFailed1Test() {
 
-        Kafka kafkaCustom =
-                setup.getKafka()
-                        .setAwaitMs(1000);
+        Kafka kafkaCustom = getKafka().setAwaitMs(1000);
 
         String topic = "count1";
         kafkaCustom.createTopic(topic);
