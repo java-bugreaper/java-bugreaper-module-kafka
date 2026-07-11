@@ -31,7 +31,7 @@ tasks.withType(Jar).configureEach {
                 'Implementation-Id': project.group,
                 'Implementation-Title': project.name,
                 'Implementation-Version': project.version,
-                'Bundle-DocURL': 'https://bugreaper.net/',
+                'Bundle-DocURL': project.findProperty('SITE_PATH'),
                 'Implementation-Vendor': 'Oleksii Betin',
                 'Bundle-License': 'https://apache.org',
                 'Created-By': "Gradle ${gradle.gradleVersion}",
