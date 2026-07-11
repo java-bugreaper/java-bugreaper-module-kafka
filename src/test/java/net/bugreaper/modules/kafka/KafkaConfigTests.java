@@ -4,7 +4,7 @@ import net.bugreaper.core.config.YamlUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Isolated;
-import testcontainers.KafkaSetup;
+import testcontainers.KafkaContainerSetup;
 
 import java.util.Objects;
 
@@ -13,10 +13,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SuppressWarnings("squid:S2699")
 @Isolated
-class KafkaConfigTests {
+class KafkaConfigTests extends KafkaContainerSetup {
 
 
-    private final KafkaSetup setup = KafkaSetup.getInstance();
 
     private static final String CI = System.getenv("CI");
     private static final String PROPERTY = "bugreaperEnv";
@@ -36,7 +35,7 @@ class KafkaConfigTests {
     @Test
     void defaultConfigTest() {
 
-        Kafka kafkaDef = setup.getKafka();
+        Kafka kafkaDef = getKafka();
 
         if(Objects.equals(CI, "true")){
             System.setProperty(PROPERTY, "docker");

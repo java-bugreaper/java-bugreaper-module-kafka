@@ -6,7 +6,7 @@ import org.hamcrest.MatcherAssert;
 import org.hamcrest.core.StringContains;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Isolated;
-import testcontainers.KafkaSetup;
+import testcontainers.KafkaContainerSetup;
 
 import java.text.MessageFormat;
 
@@ -15,16 +15,12 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 
 @Isolated
-class KafkaExceptionsTests {
+class KafkaExceptionsTests extends KafkaContainerSetup {
 
-
-    private final KafkaSetup setup = KafkaSetup.getInstance();
-    private final Kafka kafkaCustom =
-            setup.getKafka()
-                    .setAwaitMs(400)
-                    .setConsumerTimeoutMs(1000)
-                    .setMaxConsumeMessages(3);
-
+    private final Kafka kafkaCustom = getKafka()
+            .setAwaitMs(400)
+            .setConsumerTimeoutMs(1000)
+            .setMaxConsumeMessages(3);
 
 
     @Test
@@ -84,7 +80,7 @@ class KafkaExceptionsTests {
 
         String topic = "consumeTimeout";
 
-        final Kafka kafkaConsume = setup.getKafka().setConsumerTimeoutMs(1);
+        final Kafka kafkaConsume = getKafka().setConsumerTimeoutMs(1);
 
         kafkaConsume.createTopic(topic);
         kafkaConsume.purgeTopic(topic);

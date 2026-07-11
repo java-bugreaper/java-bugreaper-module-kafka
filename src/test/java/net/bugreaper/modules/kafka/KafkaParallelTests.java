@@ -2,7 +2,7 @@ package net.bugreaper.modules.kafka;
 
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.parallel.*;
-import testcontainers.KafkaSetup;
+import testcontainers.KafkaContainerSetup;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -11,12 +11,12 @@ import static java.lang.Thread.sleep;
 
 @SuppressWarnings("squid:S2699")
 @Execution(ExecutionMode.CONCURRENT) // All methods inside this class run in parallel
-class KafkaParallelTests {
+class KafkaParallelTests extends KafkaContainerSetup {
 
 
     private final Kafka kafkaConfig = Kafka.getInstance();
 
-    private final Kafka kafka = KafkaSetup.getInstance().getKafka();
+    private final Kafka kafka = getKafka();
 
     @Test
     void parallel1Test() {
