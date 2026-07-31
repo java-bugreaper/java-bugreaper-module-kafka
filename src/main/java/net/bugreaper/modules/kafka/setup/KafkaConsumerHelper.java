@@ -22,6 +22,10 @@ import static net.bugreaper.core.utils.AwaitUtils.awaitCustom;
 import static net.bugreaper.modules.kafka.logger.Log.LOGGER;
 import static org.junit.jupiter.api.Assertions.*;
 
+
+/**
+ * Kafka consumer helper responsible for consuming messages from Kafka topics.
+ */
 @SuppressWarnings("squid:S5960")
 public class KafkaConsumerHelper {
 
@@ -148,7 +152,7 @@ public class KafkaConsumerHelper {
         for (ConsumerRecord<String, String> message : records) {
 
             if (System.currentTimeMillis() - startTime > consumerTimeoutMs) {
-                throw new KafkaHelperException(MessageFormat.format("Consuming stopped, time limit reached: {0} (use setConsumerTimeoutMs or config max-consumer-timeout if need)", formatMilliseconds(consumerTimeoutMs)));
+                throw new KafkaHelperException(MessageFormat.format("Consuming interrupted after reaching the time limit: {0}. Increase the timeout using setConsumerTimeoutMs() or the 'max-consumer-timeout' configuration if needed.", formatMilliseconds(consumerTimeoutMs)));
             }
 
             if (key != null && !Objects.equals(key, message.key())) {
@@ -163,13 +167,14 @@ public class KafkaConsumerHelper {
         unsubscribe();
 
         if (resultList.isEmpty()) {
-            throw new ConditionTimeoutException(MessageFormat.format("No messages received within {0}", formatMilliseconds(awaitMs)));
+            throw new ConditionTimeoutException("No messages were received from topic '%s' within %s".formatted(topic, formatMilliseconds(awaitMs)));
         }
 
         if (resultList.size() > maxConsumedMessages) {
             LOGGER.warn("""
-                    Count of messages in topic <{}> is <{}>: more than maxMessages({}) in config
-                    only last messages will be consumed to list (can be changed by .setMaxConsumeMessages(int) or config 'max-consumed-messages')""", topic, resultList.size(), maxConsumedMessages);
+                            Topic '{}' contains <{}> messages, which exceeds the configured maxMessages({}).
+                            Only the latest messages will be consumed. Change the limit using .setMaxConsumeMessages(int) or the 'max-consumed-messages' configuration.""",
+                    topic, resultList.size(), maxConsumedMessages);
         }
 
         // cut oldest messages out of resultList and reverse list (newest first)
@@ -261,9 +266,8 @@ public class KafkaConsumerHelper {
                             getTopicMessageCountMethod(topic)));
         } catch (ConditionTimeoutException e) {
             throw new AssertionError(
-                    MessageFormat.format(
-                            "Count messages from topic <{0}> expected to be EXACTLY <{1}> but got <{2}> within {3}",
-                            topic, expectedCount, getTopicMessageCountMethod(topic), formatMilliseconds(awaitMs)));
+                    "Expected EXACTLY <%d> messages in topic '%s', but got <%d> within %s"
+                            .formatted(expectedCount, topic, getTopicMessageCountMethod(topic), formatMilliseconds(awaitMs)));
         }
     }
 
@@ -274,10 +278,12 @@ public class KafkaConsumerHelper {
                             0,
                             getTopicMessageCountMethod(topic)));
         } catch (ConditionTimeoutException e) {
+            //for throw error
+            getTopicMessageCountMethod(topic);
+
             throw new AssertionError(
-                    MessageFormat.format(
-                            "Topic <{0}> expected to be not empty but has no messages within {1}",
-                            topic, formatMilliseconds(awaitMs)));
+                    "Expected topic '%s' to be empty, but got no messages within %s"
+                            .formatted(topic, formatMilliseconds(awaitMs)));
         }
     }
 
@@ -290,9 +296,8 @@ public class KafkaConsumerHelper {
                             getTopicMessageCountMethod(topic)));
         } catch (ConditionTimeoutException e) {
             throw new AssertionError(
-                    MessageFormat.format(
-                            "Topic <{0}> expected to be empty but has <{1}> messages within {2}",
-                            topic, getTopicMessageCountMethod(topic), formatMilliseconds(awaitMs)));
+                    "Expected topic '%s' to be empty, but got <%d> messages within %s"
+                            .formatted(topic, getTopicMessageCountMethod(topic), formatMilliseconds(awaitMs)));
         }
     }
 

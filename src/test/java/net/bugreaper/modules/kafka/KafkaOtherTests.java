@@ -23,7 +23,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @SuppressWarnings("squid:S2699")
 @Isolated
 class KafkaOtherTests extends KafkaContainerSetup {
+
     private LogWatcher logWatcher;
+
     @BeforeEach
     void setup() {
         logWatcher = new LogWatcher("org.apache.kafka.clients.Metadata", Level.INFO);
@@ -51,8 +53,8 @@ class KafkaOtherTests extends KafkaContainerSetup {
         kafka1.sendToTopic(topic, "test_1");
         kafka2.sendToTopic(topic, "test_2");
 
-        kafka1.seeCountMessagesInTopicExactly(topic, 2);
-        kafka2.seeCountMessagesInTopicExactly(topic, 2);
+        kafka1.seeMessagesCountInTopicExactly(topic, 2);
+        kafka2.seeMessagesCountInTopicExactly(topic, 2);
 
         kafka1.seeMessagesHaveEqualText(topic, "test_2");
         kafka1.seeMessagesHaveEqualText(topic, "test_1");
@@ -69,8 +71,8 @@ class KafkaOtherTests extends KafkaContainerSetup {
                 logWatcher.getLoggedEvents(Level.INFO).toString(),
                 matchesRegex(".*groupId=bugreaper-consumer-group-[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\\].*"));
 
-        kafka1.seeCountMessagesInTopicExactly(topic, 2);
-        kafka2.seeCountMessagesInTopicExactly(topic, 2);
+        kafka1.seeMessagesCountInTopicExactly(topic, 2);
+        kafka2.seeMessagesCountInTopicExactly(topic, 2);
 
         kafka2.purgeTopic(topic);
 

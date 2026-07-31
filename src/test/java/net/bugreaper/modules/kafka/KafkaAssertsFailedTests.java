@@ -28,7 +28,7 @@ class KafkaAssertsFailedTests extends KafkaContainerSetup {
 
         MatcherAssert.assertThat(
                 exception.getMessage(),
-                StringContains.containsString("No messages received within 400 milliseconds"));
+                StringContains.containsString("No messages were received from topic 'topicForPurge' within 400 milliseconds"));
     }
 
 
@@ -40,11 +40,11 @@ class KafkaAssertsFailedTests extends KafkaContainerSetup {
         kafka.purgeTopic(topic);
 
         Throwable exception = assertThrows(AssertionError.class, () ->
-                kafka.seeCountMessagesInTopicExactly(topic, 2));
+                kafka.seeMessagesCountInTopicExactly(topic, 2));
 
         MatcherAssert.assertThat(
                 exception.getMessage(),
-                StringContains.containsString("Count messages from topic <count0> expected to be EXACTLY <2> but got <0> within 400 milliseconds"));
+                StringContains.containsString("Expected EXACTLY <2> messages in topic 'count0', but got <0> within 400 milliseconds"));
     }
 
     @Test
@@ -58,11 +58,11 @@ class KafkaAssertsFailedTests extends KafkaContainerSetup {
         kafkaCustom.sendToTopic(topic, "some message");
 
         Throwable exception = assertThrows(AssertionError.class, () ->
-                kafkaCustom.seeCountMessagesInTopicExactly(topic, 2));
+                kafkaCustom.seeMessagesCountInTopicExactly(topic, 2));
 
         MatcherAssert.assertThat(
                 exception.getMessage(),
-                StringContains.containsString("Count messages from topic <count1> expected to be EXACTLY <2> but got <1> within 1 second"));
+                StringContains.containsString("Expected EXACTLY <2> messages in topic 'count1', but got <1> within 1 second"));
     }
 
     @Test
@@ -78,7 +78,7 @@ class KafkaAssertsFailedTests extends KafkaContainerSetup {
 
         MatcherAssert.assertThat(
                 exception.getMessage(),
-                StringContains.containsString("Topic <notEmptyTopic> expected to be empty but has <1> messages within 400 milliseconds"));
+                StringContains.containsString("Expected topic 'notEmptyTopic' to be empty, but got <1> messages within 400 milliseconds"));
     }
 
     @Test
@@ -93,7 +93,7 @@ class KafkaAssertsFailedTests extends KafkaContainerSetup {
 
         MatcherAssert.assertThat(
                 exception.getMessage(),
-                StringContains.containsString("Topic <emptyTopic> expected to be not empty but has no messages within 400 milliseconds"));
+                StringContains.containsString("Expected topic 'emptyTopic' to be empty, but got no messages within 400 milliseconds"));
     }
 
 }

@@ -11,42 +11,49 @@ public interface KafkaConfig {
 
 
     /**
-     * Configure global await for asserts with await or consumers
+     * Configures the global await timeout for assertions and operations that use await.
      *
-     * @param awaitMs ms wait for first message
+     * @param awaitMs await timeout in milliseconds
      * @return this instance for method chaining
-     * @throws IllegalArgumentException on invalid setup
+     * @throws IllegalArgumentException if the provided timeout is invalid or less than 200 milliseconds
      */
     Kafka setAwaitMs(int awaitMs);
 
     /**
-     * Overrides the maxConsumedMessages default
-     * @param maxMessages max count of messages from end that will be consumed before break
+     * Sets the maximum number of latest messages to consume.
+     *
+     * @param maxMessages maximum number of messages to consume from the latest offset
      * @return this instance for method chaining
-     * @throws IllegalArgumentException on invalid setup
+     * @throws IllegalArgumentException if maxMessages is less than 1
      */
     Kafka setMaxConsumeMessages(int maxMessages);
 
     /**
-     * Overrides the consumerTimeoutMs default
-     * @param consumerTimeoutMs ms timeout for consumer
+     * Sets the consumer timeout.
+     *
+     * @param consumerTimeoutMs maximum consumer execution time in milliseconds before interruption
      * @return this instance for method chaining
-     * @throws IllegalArgumentException on invalid setup
+     * @throws IllegalArgumentException if the value is invalid
      */
     Kafka setConsumerTimeoutMs(int consumerTimeoutMs);
 
     /**
-     * Set switch for unique consumer groupId
-     * @param unique (true = unique, false = not unique)
+     * Enables or disables generating a unique consumer group ID.
+     *
+     * @param unique {@code true} to generate a unique consumer group ID,
+     *               {@code false} to use the default group ID
      * @return this instance for method chaining
      */
     Kafka setUniqueConsumer(boolean unique);
 
     /**
-     * Overrides the reverseMessages default
-     * <p>Reverse consumed or read messages in list</p>
+     * Sets the message ordering behavior.
      *
-     * @param reverseMessages true=reverse false=not reverse
+     * <p>Controls whether consumed messages are returned in reverse order
+     * (newest messages first).</p>
+     *
+     * @param reverseMessages {@code true} to return messages in reverse order,
+     *                        {@code false} to keep the original order
      * @return this instance for method chaining
      */
     Kafka setReverseMessages(boolean reverseMessages);

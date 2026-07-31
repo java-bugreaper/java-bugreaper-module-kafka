@@ -16,18 +16,17 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class KafkaConfigTests extends KafkaContainerSetup {
 
 
-
     private static final String CI = System.getenv("CI");
     private static final String PROPERTY = "bugreaperEnv";
     private String expectedHost;
 
 
     @BeforeEach
-    void getCi(){
+    void getCi() {
         YamlUtils.clearCache();
-        if(Objects.equals(CI, "true")){
+        if (Objects.equals(CI, "true")) {
             this.expectedHost = "docker:9096";
-        }else {
+        } else {
             this.expectedHost = "localhost:9096";
         }
     }
@@ -37,9 +36,9 @@ class KafkaConfigTests extends KafkaContainerSetup {
 
         Kafka kafkaDef = getKafka();
 
-        if(Objects.equals(CI, "true")){
+        if (Objects.equals(CI, "true")) {
             System.setProperty(PROPERTY, "docker");
-        }else {
+        } else {
             System.clearProperty(PROPERTY);
         }
 
@@ -60,9 +59,9 @@ class KafkaConfigTests extends KafkaContainerSetup {
 
         Kafka kafkaConf = Kafka.getInstance();
 
-        if(Objects.equals(CI, "true")){
+        if (Objects.equals(CI, "true")) {
             System.setProperty(PROPERTY, "docker");
-        }else {
+        } else {
             System.clearProperty(PROPERTY);
         }
 
@@ -90,16 +89,16 @@ class KafkaConfigTests extends KafkaContainerSetup {
         kafkaConf.purgeTopic(topic);
         kafkaConf.sendToTopic(topic, message);
 
-        kafkaConf.seeCountMessagesInTopicExactly(topic, 1);
-        kafkaConf.seeCountMessagesInTopicExactly(topic, 1);
+        kafkaConf.seeMessagesCountInTopicExactly(topic, 1);
+        kafkaConf.seeMessagesCountInTopicExactly(topic, 1);
 
         kafkaConf.grabMessagesFromTopic(topic).seeListAnyEquals(message);
         kafkaConf.grabMessagesFromTopic(topic).seeListAnyEquals(message);
 
-        kafkaConf.seeCountMessagesInTopicExactly(topic, 1);
+        kafkaConf.seeMessagesCountInTopicExactly(topic, 1);
 
         kafkaConf.sendToTopic(topic, message);
-        kafkaConf.seeCountMessagesInTopicExactly(topic, 2);
+        kafkaConf.seeMessagesCountInTopicExactly(topic, 2);
 
     }
 

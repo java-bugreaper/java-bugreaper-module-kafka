@@ -23,10 +23,10 @@ class KafkaParallelTests extends KafkaContainerSetup {
 
         String topic = "paralleltopic1";
 
-        kafkaConfig.createTopic(topic);
+        kafka.createTopic(topic);
         kafkaConfig.purgeTopic(topic);
 
-        CompletableFuture<Void> step1 = CompletableFuture.runAsync(() -> kafkaConfig.seeCountMessagesInTopicExactly(topic, 1));
+        CompletableFuture<Void> step1 = CompletableFuture.runAsync(() -> kafkaConfig.seeMessagesCountInTopicExactly(topic, 1));
         CompletableFuture<Void> step2 = CompletableFuture.runAsync(() -> pushWithSleep(kafkaConfig, topic, 500));
         CompletableFuture<Void> step3 = CompletableFuture.runAsync(() -> kafkaConfig.grabMessagesFromTopic(topic));
 

@@ -8,10 +8,13 @@ import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.TopicExistsException;
 import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
 
-import java.text.MessageFormat;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 
+
+/**
+ * Kafka admin helper that provides a common API for Kafka administration operations.
+ */
 public class KafkaAdminHelper {
 
     private final AdminClient adminClient;
@@ -74,7 +77,7 @@ public class KafkaAdminHelper {
             Thread.currentThread().interrupt();
         }
 
-        Log.LOGGER.debug("Topic <{}> created", topic);
+        Log.LOGGER.debug("Topic '{}' created", topic);
     }
 
     public void deleteTopicMethod(String topic) {
@@ -86,14 +89,14 @@ public class KafkaAdminHelper {
             Thread.currentThread().interrupt();
         }
 
-        Log.LOGGER.debug("Topic <{}> deleted", topic);
+        Log.LOGGER.debug("Topic '{}' deleted", topic);
     }
 
     public void purgeTopicMethod(String topic) {
 
         // count all partitions in topic
         int partitionsCount = getPartitionsCountMethod(topic);
-        Log.LOGGER.debug("Partitions in topic <{}>: {}", topic, partitionsCount);
+        Log.LOGGER.debug("Partitions in topic '{}': {}", topic, partitionsCount);
 
         Map<TopicPartition, RecordsToDelete> topicPartitionRecordToDelete = new HashMap<>();
 
@@ -113,7 +116,7 @@ public class KafkaAdminHelper {
             Thread.currentThread().interrupt();
         }
 
-        Log.LOGGER.debug("Topic <{}> purged", topic);
+        Log.LOGGER.debug("Topic '{}' purged", topic);
     }
 
 
@@ -133,9 +136,9 @@ public class KafkaAdminHelper {
         } catch (ExecutionException e) {
             Log.LOGGER.error("Failed to find topic: {}", topic);
             if (e.getCause() instanceof UnknownTopicOrPartitionException) {
-                throw new KafkaHelperException(MessageFormat.format("Topic <{0}> not exist", topic), e);
+                throw new KafkaHelperException("Topic '%s' does not exist".formatted(topic), e);
             } else {
-                throw new KafkaHelperException(MessageFormat.format("Failed to find topic: {0}", topic), e);
+                throw new KafkaHelperException("Failed to find topic: %s".formatted(topic), e);
             }
 
         }
