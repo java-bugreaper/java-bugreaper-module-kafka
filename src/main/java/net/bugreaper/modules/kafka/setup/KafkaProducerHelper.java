@@ -12,6 +12,10 @@ import java.util.concurrent.ExecutionException;
 
 import static java.lang.Thread.currentThread;
 
+
+/**
+ * Kafka producer helper responsible for sending messages to Kafka topics.
+ */
 public class KafkaProducerHelper {
 
     private KafkaProducer<String, String> kafkaProducer;
@@ -63,7 +67,7 @@ public class KafkaProducerHelper {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         } catch (ExecutionException e) {
-            Log.LOGGER.error("Failed to send message for topic: <{}>", topic);
+            Log.LOGGER.error("Failed to send message to topic: <{}>", topic);
             throw new KafkaHelperException(e);
         }
     }

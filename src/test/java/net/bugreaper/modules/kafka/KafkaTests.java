@@ -23,6 +23,11 @@ class KafkaTests extends KafkaContainerSetup {
 
     private final Kafka kafka = getKafka();
 
+    @BeforeAll
+    static void cleanResults() {
+        AllureResultLoader.cleanResultsDir();
+    }
+
     @Test
     void createTopicMultipleTimesTest() {
         String topic = "new_topic";
@@ -78,7 +83,7 @@ class KafkaTests extends KafkaContainerSetup {
         kafka.sendToTopicWithKey(topic, "key-2", "message_2");
         kafka.sendToTopicWithKey(topic, "key-1", "message_3");
 
-        kafka.seeCountMessagesInTopicExactly(topic, 3);
+        kafka.seeMessagesCountInTopicExactly(topic, 3);
 
         kafka.grabMessagesFromTopic(topic, "key-1")
                 .seeListHasExactlyCount(2)
@@ -90,8 +95,6 @@ class KafkaTests extends KafkaContainerSetup {
                 .seeListAnyEquals("message_1")
                 .seeListAnyEquals("message_2")
                 .seeListAnyEquals("message_3");
-
-
     }
 
     @Test
@@ -120,10 +123,10 @@ class KafkaTests extends KafkaContainerSetup {
 
         kafka.sendToTopic(topic, "message_1");
         kafka.seeTopicIsNotEmpty(topic);
-        kafka.seeCountMessagesInTopicExactly(topic, 1);
+        kafka.seeMessagesCountInTopicExactly(topic, 1);
 
         kafka.sendToTopic(topic, "message_2");
-        kafka.seeCountMessagesInTopicExactly(topic, 2);
+        kafka.seeMessagesCountInTopicExactly(topic, 2);
         assertEquals(2,
                 kafka.getTopicMessageCount(topic),
                 "Expected count");
@@ -135,7 +138,7 @@ class KafkaTests extends KafkaContainerSetup {
         kafka.seeTopicIsEmpty(topic);
 
         kafka.sendToTopic(topic, "test_22");
-        kafka.seeCountMessagesInTopicExactly(topic, 1);
+        kafka.seeMessagesCountInTopicExactly(topic, 1);
         kafka.seeMessagesContainText(topic, "test_22");
 
     }
@@ -198,19 +201,19 @@ class KafkaTests extends KafkaContainerSetup {
         JsonNode result = AllureResultLoader.loadByTestName("jsonEqualsTest");
 
         AllureAssert.assertThat(result)
-                .hasStep("(Kafka) Send message to topic: json_2")
+                .hasStep("(Kafka) Send message to topic: 'json_2'")
                 .hasAttachment("message:", """
                         {"id": 20, "text": "some20"}""")
 
-                .hasStep("(Kafka)[ASSERT] Message in topic: <json_2> EQUALS expected JSON")
-                .hasSubStep("(Kafka) Grab messages from topic: json_2")
+                .hasStep("(Kafka)[ASSERT] Topic: 'json_2' has a message EQUALS expected JSON")
+                .hasSubStep("(Kafka) Grab messages from topic: 'json_2'")
                 //list reversed!
                 .hasAttachment("Messages(4) list:", """
                         [
                         message_2
-                        
+                                                
                         -----------
-                        
+                                                
                         {"id": 22, "text": "some22"}
 
                         -----------
@@ -222,13 +225,13 @@ class KafkaTests extends KafkaContainerSetup {
                         {"id": 20, "text": "some20"}
                         ]""")
 
-                .hasStep("(Kafka)[ASSERT] Message in topic: <json_2> EQUALS expected JSON")
+                .hasStep("(Kafka)[ASSERT] Topic: 'json_2' has a message EQUALS expected JSON")
                 .hasSubStep("↑(Assert) List should have JSON EQUAL to:")
                 .hasAttachment("expected json", """
                         {"id": 22, "text": "some22"}""")
 
-                .hasStep("(Kafka)[ASSERT] Message in topic: <json_22> EQUALS expected text")
-                .hasSubStepLeft("(Kafka) Grab messages from topic: json_22")
+                .hasStep("(Kafka)[ASSERT] Topic: 'json_22' has a message EQUALS expected text")
+                .hasSubStepLeft("(Kafka) Grab messages from topic: 'json_22'")
                 .hasSubStepLeft("↑(Assert) List should have STRING EQUAL to: <message_1>");
     }
 
@@ -239,9 +242,9 @@ class KafkaTests extends KafkaContainerSetup {
         String message = "test1";
 
         kafka.sendToTopic(topic, message);
-        kafka.seeCountMessagesInTopicExactly(topic, 1);
+        kafka.seeMessagesCountInTopicExactly(topic, 1);
         kafka.purgeTopic(topic);
-        kafka.seeCountMessagesInTopicExactly(topic, 0);
+        kafka.seeMessagesCountInTopicExactly(topic, 0);
     }
 
     @Test
@@ -251,16 +254,16 @@ class KafkaTests extends KafkaContainerSetup {
         String message = "test1";
 
         kafka.sendToTopic(topic, message);
-        kafka.seeCountMessagesInTopicExactly(topic, 1);
+        kafka.seeMessagesCountInTopicExactly(topic, 1);
         kafka.grabMessagesFromTopic(topic);
-        kafka.seeCountMessagesInTopicExactly(topic, 1);
+        kafka.seeMessagesCountInTopicExactly(topic, 1);
 
         kafka.purgeTopic(topic);
-        kafka.seeCountMessagesInTopicExactly(topic, 0);
+        kafka.seeMessagesCountInTopicExactly(topic, 0);
 
         kafka.sendToTopic(topic, message);
         kafka.purgeTopic(topic);
-        kafka.seeCountMessagesInTopicExactly(topic, 0);
+        kafka.seeMessagesCountInTopicExactly(topic, 0);
     }
 
     @Test
@@ -273,13 +276,13 @@ class KafkaTests extends KafkaContainerSetup {
         kafka.purgeTopic(topic);
         kafka.sendToTopic(topic, message);
 
-        kafka.seeCountMessagesInTopicExactly(topic, 1);
+        kafka.seeMessagesCountInTopicExactly(topic, 1);
 
         kafka.grabMessagesFromTopic(topic).seeListAnyEquals(message);
-        kafka.seeCountMessagesInTopicExactly(topic, 1);
+        kafka.seeMessagesCountInTopicExactly(topic, 1);
         kafka.grabMessagesFromTopic(topic).seeListAnyEquals(message);
 
-        kafka.seeCountMessagesInTopicExactly(topic, 1);
+        kafka.seeMessagesCountInTopicExactly(topic, 1);
     }
 
 
@@ -293,7 +296,7 @@ class KafkaTests extends KafkaContainerSetup {
         kafka.sendToTopic(topic, "message_2");
         kafka.sendToTopic(topic, "message_3");
 
-        kafka.seeCountMessagesInTopicExactly(topic, 3);
+        kafka.seeMessagesCountInTopicExactly(topic, 3);
 
         kafka.seeMessagesContainText(topic, "message_2");
 
@@ -303,13 +306,14 @@ class KafkaTests extends KafkaContainerSetup {
 
         kafka.purgeTopic(topic);
 
-        kafka.seeCountMessagesInTopicExactly(topic, 0);
+        kafka.seeMessagesCountInTopicExactly(topic, 0);
 
         kafka.sendToTopic(topic, "test_22");
-        kafka.seeCountMessagesInTopicExactly(topic, 1);
+        kafka.seeMessagesCountInTopicExactly(topic, 1);
     }
 
     private LogWatcher logWatcher;
+
     @BeforeEach
     void setup() {
         logWatcher = new LogWatcher("bugreaper-module-kafka", Level.DEBUG);
@@ -332,7 +336,7 @@ class KafkaTests extends KafkaContainerSetup {
         kafkaCustom.sendToTopic(topic, "test_2");
         kafkaCustom.sendToTopic(topic, "test_3");
 
-        kafkaCustom.seeCountMessagesInTopicExactly(topic, 3);
+        kafkaCustom.seeMessagesCountInTopicExactly(topic, 3);
 
         kafkaCustom.grabMessagesFromTopic(topic)
                 .seeListHasExactlyCount(2)
@@ -341,8 +345,8 @@ class KafkaTests extends KafkaContainerSetup {
 
         assertEquals(
                 """
-                [[WARN] Count of messages in topic <maxMessages> is <3>: more than maxMessages(2) in config
-                only last messages will be consumed to list (can be changed by .setMaxConsumeMessages(int) or config 'max-consumed-messages')]""",
+                        [[WARN] Topic 'maxMessages' contains <3> messages, which exceeds the configured maxMessages(2).
+                        Only the latest messages will be consumed. Change the limit using .setMaxConsumeMessages(int) or the 'max-consumed-messages' configuration.]""",
                 logWatcher.getLoggedEvents(Level.WARN).toString());
 
         assertEquals(
@@ -354,9 +358,9 @@ class KafkaTests extends KafkaContainerSetup {
                 StringContains.containsString("""
                         List of messages: [
                         test_3
-                        
+                                                
                         -----------
-                        
+                                                
                         test_2
                         ]"""));
     }
@@ -373,7 +377,7 @@ class KafkaTests extends KafkaContainerSetup {
         kafkaCustom.sendToTopic(topic, "test_2");
         kafkaCustom.sendToTopic(topic, "test_3");
 
-        kafkaCustom.seeCountMessagesInTopicExactly(topic, 3);
+        kafkaCustom.seeMessagesCountInTopicExactly(topic, 3);
 
         kafkaCustom.grabMessagesFromTopic(topic)
                 .seeListHasExactlyCount(2)
@@ -382,8 +386,8 @@ class KafkaTests extends KafkaContainerSetup {
 
         assertEquals(
                 """
-                [[WARN] Count of messages in topic <maxMessagesNotReversed> is <3>: more than maxMessages(2) in config
-                only last messages will be consumed to list (can be changed by .setMaxConsumeMessages(int) or config 'max-consumed-messages')]""",
+                        [[WARN] Topic 'maxMessagesNotReversed' contains <3> messages, which exceeds the configured maxMessages(2).
+                        Only the latest messages will be consumed. Change the limit using .setMaxConsumeMessages(int) or the 'max-consumed-messages' configuration.]""",
                 logWatcher.getLoggedEvents(Level.WARN).toString());
 
         assertEquals(
@@ -395,9 +399,9 @@ class KafkaTests extends KafkaContainerSetup {
                 StringContains.containsString("""
                         List of messages: [
                         test_2
-                        
+                                                
                         -----------
-                        
+                                                
                         test_3
                         ]"""));
     }

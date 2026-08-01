@@ -8,9 +8,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Isolated;
 import testcontainers.KafkaContainerSetup;
 
-import java.text.MessageFormat;
-
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 
@@ -26,13 +25,50 @@ class KafkaExceptionsTests extends KafkaContainerSetup {
     @Test
     void purgeNotExistingTopicTest() {
         String topic = "topicNotExist1";
+
         Throwable exception = assertThrows(KafkaHelperException.class, () ->
                 kafkaCustom.purgeTopic(topic));
 
         MatcherAssert.assertThat(
                 "Exception on purge not existing topic",
                 exception.getMessage(),
-                is(MessageFormat.format("Topic <{0}> not exist", topic)));
+                is("Topic 'topicNotExist1' does not exist"));
+    }
+
+    @Test
+    void seeMessagesCountInTopicExactlyNotExistingTopicTest() {
+        String topic = "topicNotExist1";
+
+        Throwable exception = assertThrows(KafkaHelperException.class, () ->
+                kafkaCustom.seeMessagesCountInTopicExactly(topic, 2));
+
+        assertEquals(
+                "Topic '%s' does not exist".formatted(topic),
+                exception.getMessage());
+    }
+
+    @Test
+    void seeTopicIsNotEmptyNotExistingTopicTest() {
+        String topic = "topicNotExist1";
+
+        Throwable exception = assertThrows(KafkaHelperException.class, () ->
+                kafkaCustom.seeTopicIsNotEmpty(topic));
+
+        assertEquals(
+                "Topic '%s' does not exist".formatted(topic),
+                exception.getMessage());
+    }
+
+    @Test
+    void seeTopicIsEmptyNotExistingTopicTest() {
+        String topic = "topicNotExist1";
+
+        Throwable exception = assertThrows(KafkaHelperException.class, () ->
+                kafkaCustom.seeTopicIsEmpty(topic));
+
+        assertEquals(
+                "Topic '%s' does not exist".formatted(topic),
+                exception.getMessage());
     }
 
     @Test
@@ -42,21 +78,23 @@ class KafkaExceptionsTests extends KafkaContainerSetup {
         Throwable exception = assertThrows(KafkaHelperException.class, () ->
                 kafkaCustom.grabMessagesFromTopic(topic));
 
-        MatcherAssert.assertThat(
-                exception.getMessage(),
-                is(MessageFormat.format("Topic <{0}> not exist", topic)));
+        assertEquals(
+                "Topic '%s' does not exist".formatted(topic),
+                exception.getMessage());
+
     }
+
 
     @Test
     void countNotExistingTopicTest() {
         String topic = "topicNotExist2";
 
         Throwable exception = assertThrows(KafkaHelperException.class, () ->
-                kafkaCustom.seeCountMessagesInTopicExactly(topic, 1));
+                kafkaCustom.seeMessagesCountInTopicExactly(topic, 1));
 
         MatcherAssert.assertThat(
                 exception.getMessage(),
-                is(MessageFormat.format("Topic <{0}> not exist", topic)));
+                is("Topic 'topicNotExist2' does not exist"));
     }
 
     @Test
@@ -72,7 +110,7 @@ class KafkaExceptionsTests extends KafkaContainerSetup {
 
         MatcherAssert.assertThat(
                 exception.getMessage(),
-                StringContains.containsString("No messages received within 400 milliseconds"));
+                StringContains.containsString("No messages were received from topic 'topicEmpty' within 400 milliseconds"));
     }
 
     @Test
@@ -94,7 +132,7 @@ class KafkaExceptionsTests extends KafkaContainerSetup {
 
         MatcherAssert.assertThat(
                 exception.getMessage(),
-                StringContains.containsString("Consuming stopped, time limit reached: 1 millisecond (use setConsumerTimeoutMs or config max-consumer-timeout if need)"));
+                StringContains.containsString("Consuming interrupted after reaching the time limit: 1 millisecond. Increase the timeout using setConsumerTimeoutMs() or the max-consumer-timeout configuration if needed."));
     }
 
     @Test

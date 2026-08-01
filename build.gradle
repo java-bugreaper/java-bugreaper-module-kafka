@@ -43,12 +43,12 @@ tasks.withType(Jar).configureEach {
 repositories {
 
     mavenCentral()
-    //mavenLocal()
+    mavenLocal()
 
 }
 
 dependencies {
-    api 'net.bugreaper:core:1.4.1'
+    api 'net.bugreaper:core:1.4.3'
 
     api 'org.apache.kafka:kafka-clients:3.9.1'
 

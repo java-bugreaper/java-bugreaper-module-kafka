@@ -12,18 +12,36 @@ import net.bugreaper.modules.kafka.setup.KafkaConsumerHelper;
 import net.bugreaper.modules.kafka.setup.KafkaProducerHelper;
 
 /**
- * This class consists methods that operate with Kafka
+ * Kafka helper that provides a common API for operating with Kafka.
  *
- * <p>For one instance run recommended: {@code Kafka kafka = Kafka.getInstance();}</p>
+ * <p>Recommended to use one instance:
+ * {@code Kafka kafka = Kafka.getInstance();}
+ * </p>
  *
- * <p> Consumer with static membership for remove re-balancing lag after reconnect consumer
- * <p><b> Asserts and grab left messages after test!!! - recommended to use purge between tests(preferable) or test unique data</b>
- * <p> Grab messages limited, by default {@link #maxConsumedMessages} (grab last messages) (can be changed by {@link #setMaxConsumeMessages(int)} or config {@code modules.kafka.max-consumed-messages})
- * <p> Consumed messages will be reversed (newest messages first - for fast tests)
- * <p> Await for first message, by default {@link #awaitMs} (can be changed by {@link #setAwaitMs(int)} or config {@code modules.kafka.await})
- * <p> For testing recommended to use ONE partition per topic (but supports multiple partitions)
+ * <p>Uses a static consumer membership to reduce consumer rebalancing delays after reconnects.</p>
  *
- * <p> Consumer has static groupId by default (not recommended parallel tests on one topic), can be changed by {@link #setUniqueConsumer(boolean)} or config {@code modules.kafka.generate-unique-consumer}
+ * <p><b>Important:</b> Consumed messages remain available after the test execution.
+ * It is recommended to purge messages between tests or use unique test data.</p>
+ *
+ * <p>Consumed messages are limited by default to {@link #maxConsumedMessages}
+ * (only the latest messages are grabbed). The limit can be changed using
+ * {@link #setMaxConsumeMessages(int)} or configuration:
+ * {@code modules.kafka.max-consumed-messages}.</p>
+ *
+ * <p>Consumed messages are returned in reverse order (newest messages first) by default
+ * to improve performance for fast tests.</p>
+ *
+ * <p>Waits for the first message using the default timeout {@link #awaitMs}.
+ * The timeout can be changed using {@link #setAwaitMs(int)} or configuration:
+ * {@code modules.kafka.await}.</p>
+ *
+ * <p>For testing, it is recommended to use one partition per topic,
+ * but multiple partitions are supported.</p>
+ *
+ * <p>By default, the consumer uses a static group ID.
+ * A unique consumer can be enabled using {@link #setUniqueConsumer(boolean)}
+ * or configuration:
+ * {@code modules.kafka.generate-unique-consumer}.</p>
  *
  * @author Oleksii Betin "ambu550"
  * @since 1.0.0
@@ -38,7 +56,7 @@ public class Kafka extends KafkaConsumerHelper implements KafkaInt, KafkaAsserts
      * <p>
      * This implementation is thread-safe using method-level synchronization.
      *
-     * @return the singleton instance of {@link Kafka}
+     * @return the shared instance of {@link Kafka}
      * @see #Kafka() config setup
      */
     public static synchronized Kafka getInstance() {
@@ -58,7 +76,7 @@ public class Kafka extends KafkaConsumerHelper implements KafkaInt, KafkaAsserts
     }
 
     /**
-     * Constructs a kafka client configuration.
+     * Constructs a MongoDb client using YAML configuration.
      *
      * <p>Loads configuration values from a YAML file.</p>
      *
@@ -69,11 +87,11 @@ public class Kafka extends KafkaConsumerHelper implements KafkaInt, KafkaAsserts
      * modules:
      *   kafka:
      *     url: localhost:9096
-     *     await: 300 # optional
-     *     max-consumed-messages: 5 # optional
-     *     max-consumer-timeout: 700 # optional
-     *     generate-unique-consumer: true # optional
-     *     reverse-messages: true # optional
+     *     await: 300 # (optional)
+     *     max-consumed-messages: 5 # (optional)
+     *     max-consumer-timeout: 700 # (optional)
+     *     generate-unique-consumer: true # (optional)
+     *     reverse-messages: true # (optional)
      * </pre>
      *
      * <p>Missing required keys will result in configuration errors.
@@ -175,32 +193,32 @@ public class Kafka extends KafkaConsumerHelper implements KafkaInt, KafkaAsserts
     }
 
     @Override
-    @Step("(Kafka) Create topic: {topic} with partitions: {partitionsCount}")
+    @Step("(Kafka) Create topic: '{topic}' with <{partitionsCount}> partitions")
     public void createTopic(String topic, int partitionsCount) {
         adminClient.createTopicMethod(topic, partitionsCount);
     }
 
     @Override
-    @Step("(Kafka) Delete topic: {topic}")
+    @Step("(Kafka) Delete topic: '{topic}'")
     public void deleteTopic(String topic) {
         adminClient.deleteTopicMethod(topic);
     }
 
     @Override
-    @Step("(Kafka) Purge topic: {topic}")
+    @Step("(Kafka) Purge topic: '{topic}'")
     public void purgeTopic(String topic) {
         adminClient.purgeTopicMethod(topic);
     }
 
     @Override
-    @Step("(Kafka) Send message to topic: {topic}")
+    @Step("(Kafka) Send message to topic: '{topic}'")
     public void sendToTopic(String topic, String message) {
         Allure.addAttachment("message:", "application/json", message);
         messageProducer.send(topic, message);
     }
 
     @Override
-    @Step("(Kafka) Send message to topic: {topic} with key: {key}")
+    @Step("(Kafka) Send message to topic: '{topic}' with key '{key}'")
     public void sendToTopicWithKey(String topic, String key, String message) {
         Allure.addAttachment("message:", "application/json", message);
         messageProducer.sendWithKey(topic, key, message);
@@ -209,13 +227,13 @@ public class Kafka extends KafkaConsumerHelper implements KafkaInt, KafkaAsserts
     //get data
 
     @Override
-    @Step("(Kafka) Grab messages from topic: {topic}")
+    @Step("(Kafka) Grab messages from topic: '{topic}'")
     public AssertableStringList grabMessagesFromTopic(String topic) {
         return grabMessagesFromTopicMethod(topic, null);
     }
 
     @Override
-    @Step("(Kafka) Grab messages from topic: {topic} with key: {key}")
+    @Step("(Kafka) Grab messages from topic: '{topic}' with key: '{key}'")
     public AssertableStringList grabMessagesFromTopic(String topic, String key) {
         return grabMessagesFromTopicMethod(topic, key);
     }
@@ -239,14 +257,14 @@ public class Kafka extends KafkaConsumerHelper implements KafkaInt, KafkaAsserts
     //asserts
 
     @Override
-    @Step("(Kafka)[ASSERT] Message in topic: <{topic}> EQUALS expected text")
+    @Step("(Kafka)[ASSERT] Topic: '{topic}' has a message EQUALS expected text")
     public void seeMessagesHaveEqualText(String topic, String expectedText) {
         grabMessagesFromTopic(topic)
                 .seeListAnyEquals(expectedText);
     }
 
     @Override
-    @Step("(Kafka)[ASSERT] Message in topic: <{topic}> CONTAINS expected text")
+    @Step("(Kafka)[ASSERT] Topic: '{topic}' has a message CONTAINS expected text")
     public void seeMessagesContainText(String topic, String expectedPart) {
         grabMessagesFromTopic(topic)
                 .seeListAnyContains(expectedPart);
@@ -254,33 +272,33 @@ public class Kafka extends KafkaConsumerHelper implements KafkaInt, KafkaAsserts
 
 
     @Override
-    @Step("(Kafka)[ASSERT] Message in topic: <{topic}> EQUALS expected JSON")
+    @Step("(Kafka)[ASSERT] Topic: '{topic}' has a message EQUALS expected JSON")
     public void seeMessagesHaveEqualJson(String topic, String expectedJson) {
         grabMessagesFromTopic(topic)
                 .seeListAnyEqualsJson(expectedJson);
     }
 
     @Override
-    @Step("(Kafka)[ASSERT] Message in topic: <{topic}> CONTAINS expected JSON")
+    @Step("(Kafka)[ASSERT] Topic: '{topic}' has a message CONTAINS expected JSON")
     public void seeMessagesContainJson(String topic, String expectedJsonPart) {
         grabMessagesFromTopic(topic)
                 .seeListAnyContainsJson(expectedJsonPart);
     }
 
     @Override
-    @Step("(Kafka)[ASSERT] Topic: <{topic}> contains {expectedCount} messages")
-    public void seeCountMessagesInTopicExactly(String topic, int expectedCount) {
+    @Step("(Kafka)[ASSERT] Topic: '{topic}' contains EXACTLY <{expectedCount}> messages")
+    public void seeMessagesCountInTopicExactly(String topic, int expectedCount) {
         assertCountInTopicMethod(topic, expectedCount, awaitMs);
     }
 
     @Override
-    @Step("(Kafka)[ASSERT] Topic: <{topic}> is not empty")
+    @Step("(Kafka)[ASSERT] Topic: '{topic}' is not empty")
     public void seeTopicIsNotEmpty(String topic) {
         seeTopicIsNotEmptyMethod(topic, awaitMs);
     }
 
     @Override
-    @Step("(Kafka)[ASSERT] Topic: <{topic}> is empty")
+    @Step("(Kafka)[ASSERT] Topic: '{topic}' is empty")
     public void seeTopicIsEmpty(String topic) {
         seeTopicIsEmptyMethod(topic, awaitMs);
     }
