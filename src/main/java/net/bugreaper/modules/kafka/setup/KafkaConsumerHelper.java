@@ -192,7 +192,7 @@ public class KafkaConsumerHelper {
             Collections.reverse(actualList);
         }
 
-        LOGGER.info("Messages consumed from topic <{}>: {}", topic, actualList.size());
+        LOGGER.info("Messages consumed from topic '{}': {}", topic, actualList.size());
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("List of messages: {}", StringMappers.listToString(actualList));
         }
@@ -231,7 +231,7 @@ public class KafkaConsumerHelper {
         long start = partitions.stream().mapToLong(startPartitions::get).sum();
         long count = all - start;
         consumer().unsubscribe();
-        LOGGER.debug("In Topic: <{}> -> (all {} message/s - {} deleted) = {}", topic, all, start, count);
+        LOGGER.debug("In Topic: '{}' -> (all {} message/s - {} deleted) = {}", topic, all, start, count);
         return (int) count;
     }
 
@@ -282,7 +282,7 @@ public class KafkaConsumerHelper {
             getTopicMessageCountMethod(topic);
 
             throw new AssertionError(
-                    "Expected topic '%s' to be empty, but got no messages within %s"
+                    "Expected topic '%s' to be not empty, but got no messages within %s"
                             .formatted(topic, formatMilliseconds(awaitMs)));
         }
     }
@@ -300,5 +300,6 @@ public class KafkaConsumerHelper {
                             .formatted(topic, getTopicMessageCountMethod(topic), formatMilliseconds(awaitMs)));
         }
     }
+
 
 }

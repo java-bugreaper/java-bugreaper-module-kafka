@@ -40,7 +40,7 @@ public interface KafkaAsserts {
      * @param topic         topic name
      * @param expectedCount expected number of messages
      * @throws AssertionError if the assertion fails
-      * @throws KafkaHelperException if the topic does not exist
+     * @throws KafkaHelperException if the topic does not exist
      */
     void seeMessagesCountInTopicExactly(String topic, int expectedCount);
 
@@ -58,12 +58,12 @@ public interface KafkaAsserts {
     void seeMessagesHaveEqualText(String topic, String expectedText);
 
     /**
-     * Asserts that at least one of messages in topic contains the specified string.
+     * Asserts that at least one of messages in topic contains the specified text.
      *
      * <p><b>Uses await until at least one message exists.</b></p>
      *
      * @param topic        topic name
-     * @param expectedPart expected string part
+     * @param expectedPart expected text part
      * @throws AssertionError       if the assertion fails
      * @throws ConditionTimeoutException if the topic remains empty until the await timeout expires
      * @throws KafkaHelperException if the topic does not exist or consumer timeout is reached
@@ -71,7 +71,7 @@ public interface KafkaAsserts {
     void seeMessagesContainText(String topic, String expectedPart);
 
     /**
-     * * Asserts that at least one of messages in topic is equal to the specified JSON with strict array ordering.
+     * Asserts that at least one of messages in topic is equal to the specified JSON with strict array ordering.
      *
      * <p><b>Uses await until at least one message exists.</b></p>
      *
@@ -85,7 +85,7 @@ public interface KafkaAsserts {
     void seeMessagesHaveEqualJson(String topic, String expectedJson);
 
     /**
-     * * Asserts that at least one of messages in topic contains the specified JSON without strict array ordering.
+     * Asserts that at least one of messages in topic contains the specified JSON without strict array ordering.
      *
      * <p><b>Uses await until at least one message exists.</b></p>
      *
@@ -97,5 +97,16 @@ public interface KafkaAsserts {
      * @throws KafkaHelperException if the topic does not exist or consumer timeout is reached
      */
     void seeMessagesContainJson(String topic, String expectedJsonPart);
+
+    /**
+     * Asserts that the topic exists.
+     *
+     * <p><b>Uses await.</b></p>
+     *
+     * @param topicName topic name
+     * @throws AssertionError         if the assertion fails
+     * @throws KafkaHelperException if an Kafka error occurs
+     */
+    void seeTopicExists(String topicName);
 
 }

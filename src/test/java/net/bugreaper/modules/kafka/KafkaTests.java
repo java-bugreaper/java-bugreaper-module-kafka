@@ -128,7 +128,7 @@ class KafkaTests extends KafkaContainerSetup {
         kafka.sendToTopic(topic, "message_2");
         kafka.seeMessagesCountInTopicExactly(topic, 2);
         assertEquals(2,
-                kafka.getTopicMessageCount(topic),
+                kafka.getMessagesCountInTopic(topic),
                 "Expected count");
 
         kafka.seeMessagesContainText(topic, "message_1");
@@ -242,6 +242,9 @@ class KafkaTests extends KafkaContainerSetup {
         String message = "test1";
 
         kafka.sendToTopic(topic, message);
+
+        kafka.seeTopicExists(topic);
+
         kafka.seeMessagesCountInTopicExactly(topic, 1);
         kafka.purgeTopic(topic);
         kafka.seeMessagesCountInTopicExactly(topic, 0);
@@ -301,7 +304,7 @@ class KafkaTests extends KafkaContainerSetup {
         kafka.seeMessagesContainText(topic, "message_2");
 
         assertEquals(
-                "[[INFO] Messages consumed from topic <multiplePartitions>: 3]",
+                "[[INFO] Messages consumed from topic 'multiplePartitions': 3]",
                 logWatcher.getLoggedEvents(Level.INFO).toString());
 
         kafka.purgeTopic(topic);
@@ -350,7 +353,7 @@ class KafkaTests extends KafkaContainerSetup {
                 logWatcher.getLoggedEvents(Level.WARN).toString());
 
         assertEquals(
-                "[[INFO] Messages consumed from topic <maxMessages>: 2]",
+                "[[INFO] Messages consumed from topic 'maxMessages': 2]",
                 logWatcher.getLoggedEvents(Level.INFO).toString());
 
         MatcherAssert.assertThat(
@@ -391,7 +394,7 @@ class KafkaTests extends KafkaContainerSetup {
                 logWatcher.getLoggedEvents(Level.WARN).toString());
 
         assertEquals(
-                "[[INFO] Messages consumed from topic <maxMessagesNotReversed>: 2]",
+                "[[INFO] Messages consumed from topic 'maxMessagesNotReversed': 2]",
                 logWatcher.getLoggedEvents(Level.INFO).toString());
 
         MatcherAssert.assertThat(

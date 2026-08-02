@@ -66,9 +66,9 @@ public class KafkaProducerHelper {
             kafkaProducer.send(produceRecord).get();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+            throw new KafkaHelperException("INTERRUPTED! Failed to send message to topic: '%s'".formatted(topic), e);
         } catch (ExecutionException e) {
-            Log.LOGGER.error("Failed to send message to topic: <{}>", topic);
-            throw new KafkaHelperException(e);
+            throw new KafkaHelperException("Failed to send message to topic: '%s'".formatted(topic), e);
         }
     }
 }

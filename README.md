@@ -33,7 +33,8 @@ allowing you to write readable and maintainable tests with minimal boilerplate.
 
 ### Tested with:
 
-    apache/kafka:4.1.1
+    apache/kafka:3.9.1
+    apache/kafka:4.3.1
 
 ## Real examples here:
 - ### [Report-kafka](https://bug-reaper.gitlab.io/java-bugreaper-sandbox/#behaviors)

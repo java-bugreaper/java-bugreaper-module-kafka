@@ -119,7 +119,7 @@ public interface KafkaInt {
      * after reconnecting.</p>
      *
      * <p>Example:
-     * {@code grabMessagesFromTopic("test_queue", "my-key").seeListAnyEquals("my message")}
+     * {@code grabMessagesFromTopic("test_topic", "my-key").seeListAnyEquals("my message")}
      * </p>
      *
      * @param topic topic name
@@ -148,7 +148,7 @@ public interface KafkaInt {
      * @return number of messages in the topic
      * @throws KafkaHelperException if the topic does not exist
      */
-    int getTopicMessageCount(String topic);
+    int getMessagesCountInTopic(String topic);
 
     /**
      * Returns the number of partitions in a topic.
