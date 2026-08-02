@@ -24,6 +24,7 @@ class KafkaParallelTests extends KafkaContainerSetup {
         String topic = "paralleltopic1";
 
         kafka.createTopic(topic);
+        kafka.seeTopicExists(topic);
         kafkaConfig.purgeTopic(topic);
 
         CompletableFuture<Void> step1 = CompletableFuture.runAsync(() -> kafkaConfig.seeMessagesCountInTopicExactly(topic, 1));
@@ -39,6 +40,7 @@ class KafkaParallelTests extends KafkaContainerSetup {
         String topic = "paralleltopic2";
 
         kafkaConfig.createTopic(topic);
+        kafka.seeTopicExists(topic);
         kafkaConfig.purgeTopic(topic);
 
         CompletableFuture<Void> step1 = CompletableFuture.runAsync(() -> kafkaConfig.grabMessagesFromTopic(topic).seeListAnyContains("some"));
@@ -56,6 +58,7 @@ class KafkaParallelTests extends KafkaContainerSetup {
         String topic = "paralleltopic_obj";
 
         kafka.createTopic(topic);
+        kafka.seeTopicExists(topic);
         kafka.purgeTopic(topic);
 
         CompletableFuture<Void> step1 = CompletableFuture.runAsync(() -> kafka.grabMessagesFromTopic(topic).seeListAnyContains("some"));

@@ -7,14 +7,20 @@ import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.TopicExistsException;
 import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
+import org.awaitility.core.ConditionTimeoutException;
 
 import java.util.*;
 import java.util.concurrent.ExecutionException;
+
+import static net.bugreaper.core.mappers.StringMappers.formatMilliseconds;
+import static net.bugreaper.core.utils.AwaitUtils.awaitCustom;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 
 /**
  * Kafka admin helper that provides a common API for Kafka administration operations.
  */
+@SuppressWarnings("squid:S5960")
 public class KafkaAdminHelper {
 
     private final AdminClient adminClient;
@@ -34,6 +40,10 @@ public class KafkaAdminHelper {
         }
                 , "kafka-admin-client-shutdown"
         ));
+    }
+
+    KafkaAdminHelper(AdminClient adminClient) {
+        this.adminClient = adminClient;
     }
 
     private Properties createAdminClient(String bootStrapServer) {
@@ -71,10 +81,11 @@ public class KafkaAdminHelper {
             if (e.getCause() instanceof TopicExistsException) {
                 Log.LOGGER.warn(e.getMessage());
             } else {
-                throw new KafkaHelperException(e);
+                throw new KafkaHelperException("Failed to create topic: '%s'".formatted(topic), e);
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+            throw new KafkaHelperException("INTERRUPTED! Failed to create topic: '%s'".formatted(topic), e);
         }
 
         Log.LOGGER.debug("Topic '{}' created", topic);
@@ -84,9 +95,10 @@ public class KafkaAdminHelper {
         try {
             adminClient.deleteTopics(Collections.singleton(topic)).all().get();
         } catch (ExecutionException e) {
-            throw new KafkaHelperException(e);
+            throw new KafkaHelperException("Failed to delete topic: '%s'".formatted(topic), e);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+            throw new KafkaHelperException("INTERRUPTED! Failed to delete topic: '%s'".formatted(topic), e);
         }
 
         Log.LOGGER.debug("Topic '{}' deleted", topic);
@@ -111,9 +123,10 @@ public class KafkaAdminHelper {
         try {
             adminClient.deleteRecords(topicPartitionRecordToDelete).all().get();
         } catch (ExecutionException e) {
-            throw new KafkaHelperException(e);
+            throw new KafkaHelperException("Failed to purge topic: '%s'".formatted(topic), e);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+            throw new KafkaHelperException("INTERRUPTED! Failed to purge topic: '%s'".formatted(topic), e);
         }
 
         Log.LOGGER.debug("Topic '{}' purged", topic);
@@ -132,15 +145,44 @@ public class KafkaAdminHelper {
 
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new KafkaHelperException("Interrupted!", e);
+            throw new KafkaHelperException("INTERRUPTED! Failed to find topic: '%s'".formatted(topic), e);
         } catch (ExecutionException e) {
             Log.LOGGER.error("Failed to find topic: {}", topic);
             if (e.getCause() instanceof UnknownTopicOrPartitionException) {
                 throw new KafkaHelperException("Topic '%s' does not exist".formatted(topic), e);
             } else {
-                throw new KafkaHelperException("Failed to find topic: %s".formatted(topic), e);
+                throw new KafkaHelperException("Failed to find topic: '%s'".formatted(topic), e);
             }
 
+        }
+    }
+
+    public boolean getTopicExistenceMethod(String topic) {
+
+        try {
+            adminClient.describeTopics(Collections.singleton(topic))
+                    .allTopicNames()
+                    .get();
+            return true;
+        } catch (ExecutionException e) {
+            if (e.getCause() instanceof UnknownTopicOrPartitionException) {
+                return false;
+            }
+            throw new KafkaHelperException("Failed to check topic existence: '%s'".formatted(topic), e.getCause());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new KafkaHelperException("INTERRUPTED! Failed to check topic existence: '%s'".formatted(topic), e);
+        }
+    }
+
+    public void seeTopicExistsMethod(String topic, int awaitMs) {
+        try {
+            awaitCustom(awaitMs).untilAsserted(() ->
+                    assertTrue(getTopicExistenceMethod(topic)));
+        } catch (ConditionTimeoutException e) {
+            throw new AssertionError(
+                    "Topic '%s' does not exist within %s"
+                            .formatted(topic, formatMilliseconds(awaitMs)));
         }
     }
 

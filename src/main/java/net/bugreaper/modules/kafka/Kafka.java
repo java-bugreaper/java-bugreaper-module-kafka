@@ -14,7 +14,7 @@ import net.bugreaper.modules.kafka.setup.KafkaProducerHelper;
 /**
  * Kafka helper that provides a common API for operating with Kafka.
  *
- * <p>Recommended to use one instance:
+ * <p>It is recommended to use a single instance:
  * {@code Kafka kafka = Kafka.getInstance();}
  * </p>
  *
@@ -31,7 +31,8 @@ import net.bugreaper.modules.kafka.setup.KafkaProducerHelper;
  * <p>Consumed messages are returned in reverse order (newest messages first) by default
  * to improve performance for fast tests.</p>
  *
- * <p>Waits for the first message using the default timeout {@link #awaitMs}.
+ * <p>Assertions use the default await timeout
+ * {@link #awaitMs} and wait for the first message.
  * The timeout can be changed using {@link #setAwaitMs(int)} or configuration:
  * {@code modules.kafka.await}.</p>
  *
@@ -58,6 +59,8 @@ public class Kafka extends KafkaConsumerHelper implements KafkaInt, KafkaAsserts
      *
      * @return the shared instance of {@link Kafka}
      * @see #Kafka() config setup
+     *
+     * @throws IllegalArgumentException if the configuration contains invalid values
      */
     public static synchronized Kafka getInstance() {
         if (instance == null) {
@@ -68,6 +71,8 @@ public class Kafka extends KafkaConsumerHelper implements KafkaInt, KafkaAsserts
     }
 
     /**
+     * Creates a Kafka helper with the specified bootstrap server.
+     *
      * @param bootStrapServer kafka server (example: {@code "my-kafka:9092"})
      */
     public Kafka(String bootStrapServer) {
@@ -96,6 +101,8 @@ public class Kafka extends KafkaConsumerHelper implements KafkaInt, KafkaAsserts
      *
      * <p>Missing required keys will result in configuration errors.
      * Missing optional keys will fall back to predefined defaults.</p>
+     *
+     * @throws IllegalArgumentException if the configuration contains invalid values
      */
     public Kafka() {
         super(YamlUtils.getStringValueByPath("modules.kafka.url"));
@@ -245,7 +252,7 @@ public class Kafka extends KafkaConsumerHelper implements KafkaInt, KafkaAsserts
     }
 
     @Override
-    public int getTopicMessageCount(String topic) {
+    public int getMessagesCountInTopic(String topic) {
         return getTopicMessageCountMethod(topic);
     }
 
@@ -303,4 +310,10 @@ public class Kafka extends KafkaConsumerHelper implements KafkaInt, KafkaAsserts
         seeTopicIsEmptyMethod(topic, awaitMs);
     }
 
+
+    @Override
+    @Step("(Kafka)[ASSERT] Topic: '{topic}' exists")
+    public void seeTopicExists(String topic) {
+        adminClient.seeTopicExistsMethod(topic, awaitMs);
+    }
 }

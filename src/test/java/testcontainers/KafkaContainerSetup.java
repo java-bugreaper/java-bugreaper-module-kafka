@@ -13,7 +13,13 @@ import java.util.Objects;
 
 public abstract class KafkaContainerSetup {
 
-    static KafkaContainer container = new KafkaContainer("apache/kafka:4.1.1")
+    private static final String STABLE_VERSION = "apache/kafka:3.9.1";
+    private static final String LATEST_VERSION = "apache/kafka:4.3.1";
+
+    private static final String DOCKER_IMAGE = resolveDockerImage();
+
+
+    static KafkaContainer container = new KafkaContainer(DOCKER_IMAGE)
             .withStartupTimeout(Duration.ofSeconds(30))
             .withCreateContainerCmdModifier(cmd -> Objects.requireNonNull(cmd.getHostConfig()).withPortBindings(
                     new PortBinding(Ports.Binding.bindPort(9096), new ExposedPort(9092))
@@ -22,7 +28,25 @@ public abstract class KafkaContainerSetup {
                     Wait.forLogMessage(".*Kafka Server started.*", 1));
 
     static {
+        System.out.printf("""
+                \u001B[32m
+                ============================================
+                >>> TESTS RUNNING ON ON DOCKER IMAGE: %s <<<
+                ============================================
+                \u001B[0m
+                %n""", DOCKER_IMAGE);
+
         container.start();
+    }
+
+    private static String resolveDockerImage() {
+        String dockerVersion = System.getProperty("dockerTestVersion");
+
+        if ("latest".equalsIgnoreCase(dockerVersion)) {
+            return LATEST_VERSION;
+        }
+
+        return STABLE_VERSION;
     }
 
     public static Kafka getKafka() {

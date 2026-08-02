@@ -140,24 +140,36 @@ class KafkaExceptionsTests extends KafkaContainerSetup {
 
         String topic = "wrongPart";
 
-        assertThrows(KafkaHelperException.class, () ->
+        Throwable exception = assertThrows(KafkaHelperException.class, () ->
                 kafkaCustom.createTopic(topic, 0));
+
+        assertEquals(
+                "Failed to create topic: 'wrongPart'",
+                exception.getMessage());
     }
 
     @Test
     void deleteWrongTopicTest() {
         String topic = "";
 
-        assertThrows(KafkaHelperException.class, () ->
+        Throwable exception = assertThrows(KafkaHelperException.class, () ->
                 kafkaCustom.deleteTopic(topic));
+
+        assertEquals(
+                "Failed to delete topic: ''",
+                exception.getMessage());
     }
 
     @Test
     void deleteNotExistTopicTest() {
         String topic = "not_exist_test";
 
-        assertThrows(KafkaHelperException.class, () ->
+        Throwable exception = assertThrows(KafkaHelperException.class, () ->
                 kafkaCustom.deleteTopic(topic));
+
+        assertEquals(
+                "Failed to delete topic: 'not_exist_test'",
+                exception.getMessage());
     }
 
 }

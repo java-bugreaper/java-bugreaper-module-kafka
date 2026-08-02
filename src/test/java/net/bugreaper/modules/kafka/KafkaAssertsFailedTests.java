@@ -6,6 +6,8 @@ import org.hamcrest.core.StringContains;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Isolated;
 import testcontainers.KafkaContainerSetup;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 
@@ -93,7 +95,20 @@ class KafkaAssertsFailedTests extends KafkaContainerSetup {
 
         MatcherAssert.assertThat(
                 exception.getMessage(),
-                StringContains.containsString("Expected topic 'emptyTopic' to be empty, but got no messages within 400 milliseconds"));
+                StringContains.containsString("Expected topic 'emptyTopic' to be not empty, but got no messages within 400 milliseconds"));
+    }
+
+    @Test
+    void seeTopicExistsFailedTest() {
+
+        String topic = "notExistTopic";
+
+        Throwable exception = assertThrows(AssertionError.class, () ->
+                kafka.seeTopicExists(topic));
+
+        assertEquals(
+                "Topic 'notExistTopic' does not exist within 400 milliseconds",
+                exception.getMessage());
     }
 
 }
