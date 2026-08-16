@@ -2,6 +2,7 @@ modules:
   kafka:
     url: localhost:9096
     await: 1000 # optional
+    await-poll-interval: 200 # optional
     max-consumed-messages: 5 # optional
     max-consumer-timeout: 700 # optional
     generate-unique-consumer: true # optional

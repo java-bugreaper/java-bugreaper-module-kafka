@@ -113,6 +113,10 @@ public class Kafka extends KafkaConsumerHelper implements KafkaInt, KafkaAsserts
         if (awaitVal instanceof Number number) {
             setAwaitMs(number.intValue());
         }
+        Object awaitPollIntervalVal = YamlUtils.getValueByPath("modules.kafka.await-poll-interval", true);
+        if (awaitPollIntervalVal instanceof Number number) {
+            this.awaitPollInterval = number.intValue();
+        }
         Object maxConsumedMessagesVal = YamlUtils.getValueByPath("modules.kafka.max-consumed-messages", true);
         if (maxConsumedMessagesVal instanceof Number number) {
             setMaxConsumeMessages(number.intValue());
@@ -179,12 +183,13 @@ public class Kafka extends KafkaConsumerHelper implements KafkaInt, KafkaAsserts
                         %s:
                             kafkaServer=%s
                             awaitMs=%d
+                            awaitPollInterval=%d
                             maxConsumedMessages=%d
                             consumerTimeoutMs=%d
                             generate-unique-consumer=%b
                             reverseMessages=%b%n""",
                 this.getClass().getSimpleName(), bootStrapServer,
-                awaitMs, maxConsumedMessages, consumerTimeoutMs,
+                awaitMs, awaitPollInterval, maxConsumedMessages, consumerTimeoutMs,
                 uniqueConsumerGroup, reverseMessages);
 
         Log.LOGGER.info(info);
