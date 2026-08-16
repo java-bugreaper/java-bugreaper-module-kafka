@@ -46,6 +46,7 @@ class KafkaConfigTests extends KafkaContainerSetup {
                         Kafka:
                             kafkaServer=%s
                             awaitMs=2000
+                            awaitPollInterval=100
                             maxConsumedMessages=10
                             consumerTimeoutMs=5000
                             generate-unique-consumer=false
@@ -69,6 +70,7 @@ class KafkaConfigTests extends KafkaContainerSetup {
                         Kafka:
                             kafkaServer=%s
                             awaitMs=1000
+                            awaitPollInterval=200
                             maxConsumedMessages=5
                             consumerTimeoutMs=700
                             generate-unique-consumer=true

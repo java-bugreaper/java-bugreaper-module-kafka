@@ -18,9 +18,8 @@ import java.util.stream.Collectors;
 
 import static net.bugreaper.core.allurereporter.AllureReporter.attachFromList;
 import static net.bugreaper.core.mappers.StringMappers.formatMilliseconds;
-import static net.bugreaper.core.utils.AwaitUtils.awaitCustom;
+import static net.bugreaper.core.utils.AwaitUtils.*;
 import static net.bugreaper.modules.kafka.logger.Log.LOGGER;
-import static org.junit.jupiter.api.Assertions.*;
 
 
 /**
@@ -40,34 +39,44 @@ public class KafkaConsumerHelper {
     protected final KafkaAdminHelper adminClient;
 
     /**
-     * default consumer group
+     * Default consumer group.
      */
     private static final String DEFAULT_GROUP = "bugreaper-consumer-group";
 
     /**
-     * default ms await in tests
+     * Default await timeout for tests, in milliseconds.
      */
     protected volatile int awaitMs = 2000;
 
     /**
-     * default max ms for consumer
+     * Default await polling interval in milliseconds for tests.
+     */
+    protected volatile int awaitPollInterval = 100;
+
+    /**
+     * Default consumer timeout in milliseconds.
      */
     protected volatile int consumerTimeoutMs = 5000;
 
     /**
-     * default max messages that will be consumed by grab
+     * Default maximum number of messages consumed by a grab operation.
      */
     protected volatile int maxConsumedMessages = 10;
 
     /**
-     * switch for unique groupId for consumer
+     * Enables using a unique consumer group ID for each test run.
      */
     protected volatile boolean uniqueConsumerGroup = false;
 
     /**
-     * default consumed messages will be reversed in list (newer messages will be checked first)
+     * Enables reversing consumed messages in the list so that newer messages are checked first.
      */
     protected volatile boolean reverseMessages = true;
+
+    private static final String SUBJECT = "messages";
+
+    private static final String CONTAINER = "topic";
+
 
     protected KafkaConsumerHelper(String bootStrapServer) {
 
@@ -259,46 +268,17 @@ public class KafkaConsumerHelper {
     }
 
     protected void assertCountInTopicMethod(String topic, int expectedCount, int awaitMs) {
-        try {
-            awaitCustom(awaitMs).untilAsserted(() ->
-                    assertEquals(
-                            expectedCount,
-                            getTopicMessageCountMethod(topic)));
-        } catch (ConditionTimeoutException e) {
-            throw new AssertionError(
-                    "Expected EXACTLY <%d> messages in topic '%s', but got <%d> within %s"
-                            .formatted(expectedCount, topic, getTopicMessageCountMethod(topic), formatMilliseconds(awaitMs)));
-        }
+        awaitEquals(expectedCount, () -> getTopicMessageCountMethod(topic), awaitMs, awaitPollInterval, SUBJECT, CONTAINER, topic);
+
     }
 
     protected void seeTopicIsNotEmptyMethod(String topic, int awaitMs) {
-        try {
-            awaitCustom(awaitMs).untilAsserted(() ->
-                    assertNotEquals(
-                            0,
-                            getTopicMessageCountMethod(topic)));
-        } catch (ConditionTimeoutException e) {
-            //for throw error
-            getTopicMessageCountMethod(topic);
-
-            throw new AssertionError(
-                    "Expected topic '%s' to be not empty, but got no messages within %s"
-                            .formatted(topic, formatMilliseconds(awaitMs)));
-        }
+        awaitIsNotEmpty(() -> getTopicMessageCountMethod(topic), awaitMs, awaitPollInterval, SUBJECT, CONTAINER, topic);
     }
 
 
     protected void seeTopicIsEmptyMethod(String topic, int awaitMs) {
-        try {
-            awaitCustom(awaitMs).untilAsserted(() ->
-                    assertEquals(
-                            0,
-                            getTopicMessageCountMethod(topic)));
-        } catch (ConditionTimeoutException e) {
-            throw new AssertionError(
-                    "Expected topic '%s' to be empty, but got <%d> messages within %s"
-                            .formatted(topic, getTopicMessageCountMethod(topic), formatMilliseconds(awaitMs)));
-        }
+        awaitIsEmpty(() -> getTopicMessageCountMethod(topic), awaitMs, awaitPollInterval, SUBJECT, CONTAINER, topic);
     }
 
 

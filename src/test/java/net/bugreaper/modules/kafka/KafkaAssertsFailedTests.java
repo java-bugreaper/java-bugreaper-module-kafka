@@ -80,7 +80,7 @@ class KafkaAssertsFailedTests extends KafkaContainerSetup {
 
         MatcherAssert.assertThat(
                 exception.getMessage(),
-                StringContains.containsString("Expected topic 'notEmptyTopic' to be empty, but got <1> messages within 400 milliseconds"));
+                StringContains.containsString("Expected topic 'notEmptyTopic' to be EMPTY, but got <1> messages within 400 milliseconds"));
     }
 
     @Test
@@ -95,7 +95,7 @@ class KafkaAssertsFailedTests extends KafkaContainerSetup {
 
         MatcherAssert.assertThat(
                 exception.getMessage(),
-                StringContains.containsString("Expected topic 'emptyTopic' to be not empty, but got no messages within 400 milliseconds"));
+                StringContains.containsString("Expected topic 'emptyTopic' to be NOT EMPTY, but got no messages within 400 milliseconds"));
     }
 
     @Test
